@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bland AI Road Assistance Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #response {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+            display: none;
+        }
+        .status {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Road Assistance Call Test</h1>
+    
+    <div class="form-group">
+        <label for="phoneNumber">Phone Number (with country code):</label>
+        <input type="text" id="phoneNumber" placeholder="+1234567890" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="customerName">Customer Name:</label>
+        <input type="text" id="customerName" placeholder="John Doe">
+    </div>
+    
+    <div class="form-group">
+        <label for="location">Location:</label>
+        <input type="text" id="location" placeholder="Highway 101, mile marker 42">
+    </div>
+    
+    <div class="form-group">
+        <label for="vehicle">Vehicle:</label>
+        <input type="text" id="vehicle" placeholder="2019 Toyota Camry, blue">
+    </div>
+    
+    <div class="form-group">
+        <label for="issue">Issue:</label>
+        <textarea id="issue" rows="3" placeholder="Flat tire on driver's side"></textarea>
+    </div>
+    
+    <button id="initiateCall">Initiate Road Assistance Call</button>
+    
+    <div id="responseContainer">
+        <div id="status" class="status"></div>
+        <pre id="response"></pre>
+    </div>
+    
+    <script>
+        document.getElementById('initiateCall').addEventListener('click', async () => {
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const customerName = document.getElementById('customerName').value;
+            const location = document.getElementById('location').value;
+            const vehicle = document.getElementById('vehicle').value;
+            const issue = document.getElementById('issue').value;
+            
+            if (!phoneNumber) {
+                showStatus('Phone number is required', 'error');
+                return;
+            }
+            
+            showStatus('Initiating call...', 'info');
+            
+            try {
+                const response = await fetch('/api/bland-call', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        phone_number: phoneNumber,
+                        customer_name: customerName,
+                        location: location,
+                        vehicle: vehicle,
+                        issue: issue
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`Call initiated successfully! Call ID: ${data.callId}`, 'success');
+                    document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+                    document.getElementById('response').style.display = 'block';
+                } else {
+                    showStatus(`Error: ${data.error}`, 'error');
+                    document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+                    document.getElementById('response').style.display = 'block';
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+                console.error('Error:', error);
+            }
+        });
+        
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = 'status';
+            if (type) {
+                statusElement.classList.add(type);
+            }
+        }
+    </script>
+</body>
+</html> 

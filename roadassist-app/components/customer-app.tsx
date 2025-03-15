@@ -107,10 +107,25 @@ export default function CustomerApp() {
       try {
         console.log(`Attempting to connect to backend (attempt ${retryCount + 1})...`);
         
-        const response = await fetch('http://localhost:3002/api/ping', {
-          signal: controller.signal,
-          cache: 'no-store'
-        });
+        // Use environment variable for backend URL or fallback to proxy through Next.js API route
+        let response;
+        try {
+          // First try using BACKEND_URL from environment variable (ngrok)
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '/api/ping';
+          console.log(`Connecting to backend via: ${backendUrl}`);
+          
+          response = await fetch(backendUrl === '/api/ping' ? backendUrl : `${backendUrl}/api/ping`, {
+            signal: controller.signal,
+            cache: 'no-store'
+          });
+        } catch (directError) {
+          console.log('Direct backend connection failed, trying through Next.js API route...');
+          // If direct connection fails, try through Next.js API route
+          response = await fetch('/api/ping', {
+            signal: controller.signal,
+            cache: 'no-store'
+          });
+        }
         
         if (response.ok) {
           const data = await response.json();
@@ -207,8 +222,14 @@ export default function CustomerApp() {
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 25000)
         
-        // Call our backend API
-        const response = await fetch('http://localhost:3002/api/analyze-image', {
+        console.log('Uploading images to /api/analyze-image')
+        
+        // Call our backend API with remaining images
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '/api/analyze-image';
+        const apiUrl = backendUrl === '/api/analyze-image' ? backendUrl : `${backendUrl}/api/analyze-image`;
+        
+        console.log(`Uploading images to ${apiUrl}`);
+        const response = await fetch(apiUrl, {
           method: 'POST',
           body: formData,
           signal: controller.signal,
@@ -307,7 +328,11 @@ export default function CustomerApp() {
           const timeoutId = setTimeout(() => controller.abort(), 25000)
           
           // Call our backend API with remaining images
-          const response = await fetch('http://localhost:3002/api/analyze-image', {
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '/api/analyze-image';
+          const apiUrl = backendUrl === '/api/analyze-image' ? backendUrl : `${backendUrl}/api/analyze-image`;
+          
+          console.log(`Uploading images to ${apiUrl}`);
+          const response = await fetch(apiUrl, {
             method: 'POST',
             body: formData,
             signal: controller.signal,

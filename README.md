@@ -5,8 +5,7 @@ A roadside assistance application for vehicle diagnostics and emergency assistan
 ## Project Structure
 
 - **roadassist-app**: The main Next.js application frontend
-- **roadassist-backend**: Backend server for API integration
-- **roadassist-frontend**: Additional frontend components
+- **roadassist-backend**: Backend server for API integration and OpenAI processing
 
 ## Features
 
@@ -51,9 +50,54 @@ npm install
    - `BLAND_WEBHOOK_SECRET`: A secure random string for webhook signing
    - `BLAND_WEBHOOK_URL`: Your Vercel deployment URL + `/api/bland-webhook`
 
-3. For Vercel deployment, add these environment variables in your project settings.
+3. Set up backend environment:
 
-> Note: The `.env` file is ignored in version control to prevent sensitive data from being committed.
+   ```bash
+   # From the project root
+   cp roadassist-backend/.env roadassist-backend/.env.bak
+   ```
+
+   Update the backend `.env` file:
+
+   - `PORT`: Should be set to 3002
+   - `OPENAI_API_KEY`: Your OpenAI API key
+
+4. For Vercel deployment, add these environment variables in your project settings.
+
+> Note: The `.env` files are ignored in version control to prevent sensitive data from being committed.
+
+## Environment Variables
+
+### Frontend (Next.js)
+
+The frontend application uses the following environment variables:
+
+- `NEXT_PUBLIC_BACKEND_URL`: URL of the backend server (default: `http://localhost:3002`)
+- `BLAND_WEBHOOK_URL`: URL for Bland AI webhook callbacks
+- `BLAND_API_KEY`: Your Bland AI API key
+- `BLAND_WEBHOOK_SECRET`: Your Bland AI webhook secret
+- `NEXT_PUBLIC_ENABLE_TESTING_TOOLS`: Enable testing tools (set to `"true"` to enable)
+
+Create or edit `.env.local` file in the `roadassist-app` directory to set these variables.
+
+### Backend (Express)
+
+The backend server uses the following environment variables:
+
+- `PORT`: Port number for the server (default: `3002`)
+- `ALLOWED_ORIGINS`: Comma-separated list of allowed origins for CORS (default: localhost origins)
+- `BLAND_API_KEY`: Your Bland AI API key
+- `BLAND_WEBHOOK_SECRET`: Your Bland AI webhook secret
+- `BLAND_WEBHOOK_URL`: URL for Bland AI webhook callbacks
+
+Create or edit `.env` file in the `roadassist-backend` directory to set these variables.
+
+## Development Best Practices
+
+- Never hardcode backend URLs, API keys, or other configuration values in your code
+- Always use environment variables for configuration
+- For local development, use `.env.local` files (which are gitignored)
+- For production, set environment variables in your hosting environment
 
 ## Running the Project
 
@@ -69,6 +113,12 @@ Start the backend server using Node.js:
 
 ```bash
 node server.js
+```
+
+For development with automatic restart:
+
+```bash
+npm run dev
 ```
 
 You should see the message "Server running on port 3002" indicating that the backend is running successfully.
@@ -88,6 +138,34 @@ npm run dev
 ```
 
 The frontend application will be available at http://localhost:3000
+
+### Running Both Services Concurrently
+
+You can use a package like `concurrently` to run both services with a single command. First, install it in the root directory:
+
+```bash
+npm install --save-dev concurrently
+```
+
+Then, add a script to the root `package.json` (or create one if it doesn't exist):
+
+```json
+{
+  "name": "roadassist",
+  "scripts": {
+    "dev": "concurrently \"cd roadassist-backend && npm run dev\" \"cd roadassist-app && npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  }
+}
+```
+
+Now you can run both services with:
+
+```bash
+npm run dev
+```
 
 ### Important Notes
 

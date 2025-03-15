@@ -23,6 +23,7 @@ import {
   Edit,
 } from "lucide-react"
 import CustomerEditModal from "./customer-edit-modal"
+import LiveTranscript from "./live-transcript"
 
 export default function AgentDashboard() {
   const { 
@@ -32,7 +33,9 @@ export default function AgentDashboard() {
     updateTicketStatus, 
     updateCustomer, 
     currentCustomer,
-    setCurrentCustomer 
+    setCurrentCustomer,
+    addMessage,
+    getCurrentCallId 
   } = useAppContext()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "All">("All")
@@ -90,6 +93,44 @@ export default function AgentDashboard() {
       }
     }
   }
+
+  const selectedTicketCallId = selectedTicket ? selectedTicket.callId : null;
+  const [showLiveTranscript, setShowLiveTranscript] = useState(true);
+  
+  const renderLiveTranscriptSection = () => {
+    if (!selectedTicket || !selectedTicket.callId) return null;
+    
+    return (
+      <>
+        <button
+          onClick={() => setShowLiveTranscript(!showLiveTranscript)}
+          className="w-full bg-white rounded-lg shadow-sm p-3 mb-4 flex justify-between items-center hover:bg-gray-50"
+        >
+          <div className="flex items-center">
+            <span className="font-medium text-gray-800">Live Call Transcript</span>
+            {selectedTicket.status === "In Progress" && (
+              <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full animate-pulse">
+                Live
+              </span>
+            )}
+          </div>
+          {showLiveTranscript ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </button>
+
+        {showLiveTranscript && (
+          <div className="bg-white rounded-lg shadow-sm p-4 mb-4 h-64">
+            {selectedTicket.status === "In Progress" ? (
+              <LiveTranscript callId={selectedTicket.callId} />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                <p>No active call in progress</p>
+              </div>
+            )}
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="flex h-full bg-gray-100">
@@ -366,6 +407,8 @@ export default function AgentDashboard() {
                     ))}
                   </div>
                 )}
+
+                {renderLiveTranscriptSection()}
 
                 {selectedTicket.status === "AI Agent Support" && (
                   <button

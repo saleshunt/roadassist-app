@@ -13,7 +13,7 @@ This is the backend server for the RoadAssist application, providing API endpoin
 2. Create a `.env` file in the root directory with the following content:
 
    ```
-   PORT=3001
+   PORT=3002
    OPENAI_API_KEY=your_openai_api_key_here
    ```
 
@@ -67,7 +67,7 @@ formData.append(
   "What issues or problems can you identify in this vehicle image?"
 );
 
-const response = await fetch("http://localhost:3001/api/analyze-image", {
+const response = await fetch("http://localhost:3002/api/analyze-image", {
   method: "POST",
   body: formData,
 });

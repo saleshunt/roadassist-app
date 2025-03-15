@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import WebhookTest from './webhook-test'
+import Link from 'next/link'
 
 /**
  * Development tools that are only shown when development features are enabled
@@ -30,7 +31,28 @@ export default function DevelopmentTools() {
             </button>
           </div>
           
-          <WebhookTest />
+          <div className="space-y-4">
+            {/* Test Tools */}
+            <div>
+              <h3 className="font-medium mb-2">Testing Tools</h3>
+              <div className="space-y-2">
+                <div>
+                  <Link 
+                    href="/transcript-test" 
+                    className="block w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 text-center"
+                  >
+                    Live Transcript Test
+                  </Link>
+                </div>
+              </div>
+            </div>
+            
+            {/* Webhook Test */}
+            <div>
+              <h3 className="font-medium mb-2">Webhook Testing</h3>
+              <WebhookTest />
+            </div>
+          </div>
           
           <div className="mt-4 text-xs text-gray-500">
             <p>Version: {process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}</p>

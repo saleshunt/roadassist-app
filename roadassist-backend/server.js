@@ -5,10 +5,33 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const { OpenAI } = require('openai');
+const http = require('http'); // Add HTTP server
+const { Server } = require('socket.io'); // Add Socket.io
 
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3002;
+
+// Create HTTP server and Socket.io instance
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004'],
+    methods: ['GET', 'POST']
+  }
+});
+
+// Socket.io connection handling
+io.on('connection', (socket) => {
+  console.log('Client connected for real-time updates', socket.id);
+  
+  socket.on('disconnect', () => {
+    console.log('Client disconnected', socket.id);
+  });
+});
+
+// Global object to track active calls
+const activeCallsTranscripts = {};
 
 // Configure OpenAI
 const openai = new OpenAI({
@@ -115,13 +138,18 @@ const upload = multer({
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3002'],
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Serve test files for Bland.ai webhook testing
+app.get('/test-bland-webhook', (req, res) => {
+  res.sendFile(path.join(__dirname, 'test-bland-webhook.html'));
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -167,20 +195,28 @@ app.post('/api/analyze-image', upload.array('images', 10), async (req, res) => {
 
     const question = req.body.question || `
       You are FormelD's AI Road Assistant, integrated into the in-car and app-based roadside assistance functionality. 
-      
-      Your task is to analyze ${req.files.length > 1 ? 'these uploaded images' : 'this uploaded image'} and generate a structured, comprehensive summary of the vehicle's situation. 
-      ${req.files.length > 1 ? 'Look at all images together to provide a complete picture. Compare and contrast details across images if they show different aspects of the same situation.' : ''}
-      
+      Your task is to analyze ${req.files.length > 1 ? 'these uploaded images' : 'this uploaded image'} and generate a structured, one-paragraph summary of the vehicle's situation. 
       The ${req.files.length > 1 ? 'images' : 'image'} could contain a wide range of content, such as geographical or location information, car specifics, warning lights, 
       mechanical issues, accidents, or other road assistance-related details.
       
-      Always start with "Thank you for sharing ${req.files.length > 1 ? 'these images' : 'this image'}." Clearly identify yourself as FormelD's AI Road Assistant. Provide a clear, concise analysis based on the ${req.files.length > 1 ? 'images' : 'image'} and end with an explanation of how this analysis will assist the support team.
+      Your response must always:
+      - Clearly identify yourself as FormelD's AI Road Assistant.
+      - Be written in a single, structured paragraph.
+      - Start with: "Thank you for sharing ${req.files.length > 1 ? 'these images' : 'this image'}."
+      - Provide a clear, concise analysis based on the ${req.files.length > 1 ? 'images' : 'image'}.
+      - End with an explanation of how this analysis will assist the support team.
 
-      Always provide a response based on what you can see in the ${req.files.length > 1 ? 'images' : 'image'}. Never say you cannot help or that you don't have enough information. If the ${req.files.length > 1 ? 'images show' : 'image shows'} a map, location screenshot, or any geographical information, acknowledge this specifically and describe what location details you can see.
-
-      Include relevant details such as: vehicle information (make, model, color, visible license plate if legible); warning indicators (dashboard alerts like check engine, battery, oil pressure); accident or damage details (visible dents, broken lights, deployed airbags, fluid leaks); and location context (road conditions, landmarks, weather, traffic, or other relevant surroundings).
-
-      Remember to maintain a helpful, professional tone throughout your response, and ensure your analysis will be useful for the support team to provide appropriate assistance.
+      ### Response Structure:
+      1. **Acknowledgment** – Always begin with: "Thank you for sharing ${req.files.length > 1 ? 'these images' : 'this image'}."
+      2. **Situation Summary** – Describe the key issues visible in the ${req.files.length > 1 ? 'images' : 'image'}.
+      3. **Relevant Details** – If applicable, include:
+         - **Vehicle Information** – Make, model, color, visible license plate (if legible).
+         - **Warning Indicators** – Any dashboard alerts (e.g., check engine, battery, oil pressure).
+         - **Accident or Damage Details** – Visible dents, broken lights, deployed airbags, fluid leaks, etc.
+         - **Location Context** – Road conditions, landmarks, weather, traffic, or other relevant surroundings.
+      4. **Conclusion** – End with how this information will help the support team provide better assistance.
+      
+      ${req.files.length > 1 ? 'Look at all images together to provide a complete picture. Compare and contrast details across images if they show different aspects of the same situation.' : ''}
     `;
 
     // Prepare the content array for the API call with text first, then all images
@@ -252,15 +288,87 @@ app.get('/api/image-analysis/:id', (req, res) => {
   }
 });
 
-// Endpoint for Bland.ai call integration
+// New endpoint for Bland AI streaming API
+app.post('/api/bland-stream', express.json(), (req, res) => {
+  try {
+    const { call_id, transcript_segment, type } = req.body;
+    
+    // Log incoming stream data
+    console.log(`Received stream data for call ${call_id}, type: ${type}`);
+    
+    // Initialize transcript array if this is a new call
+    if (!activeCallsTranscripts[call_id]) {
+      activeCallsTranscripts[call_id] = [];
+    }
+    
+    // Add new segment to the transcript
+    if (transcript_segment) {
+      activeCallsTranscripts[call_id].push(transcript_segment);
+      
+      // Emit to all connected clients
+      io.emit('transcript_update', {
+        call_id,
+        transcript_segment
+      });
+    }
+    
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error handling stream data:', error);
+    res.status(200).json({ success: false, error: 'Error processing stream data' });
+  }
+});
+
+// Add a test endpoint to simulate transcript updates
+app.post('/api/test-transcript-stream', express.json(), (req, res) => {
+  try {
+    const { call_id, text, speaker } = req.body;
+    
+    if (!call_id || !text) {
+      return res.status(400).json({ error: 'call_id and text are required' });
+    }
+    
+    const transcriptSegment = {
+      speaker: speaker || 'ai',
+      text,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Emit to connected clients
+    io.emit('transcript_update', {
+      call_id,
+      transcript_segment: transcriptSegment
+    });
+    
+    // Initialize if not exists
+    if (!activeCallsTranscripts[call_id]) {
+      activeCallsTranscripts[call_id] = [];
+    }
+    
+    // Add to active calls
+    activeCallsTranscripts[call_id].push(transcriptSegment);
+    
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error in test transcript:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Modify the existing Bland AI call endpoint to enable streaming
 app.post('/api/bland-call', async (req, res) => {
   try {
-    // Extract customer information from request with improved defaults for a demo user
-    const customerPhone = req.body.phone_number || "+31620086783"; // Make phone number adjustable again
-    const customerName = req.body.customer_name || "Alex Johnson";
-    const customerLocation = req.body.location || "Amsterdam, Netherlands";
-    const customerVehicle = req.body.vehicle || "BMW 3 Series (2020)";
-    const customerIssue = req.body.issue || "Flat tire on highway A10";
+    // Extract customer information from request without default fallbacks
+    // This ensures we use the client-provided data instead of creating a new user
+    if (!req.body.phone_number) {
+      return res.status(400).json({ error: 'Phone number is required' });
+    }
+    
+    const customerPhone = req.body.phone_number;
+    const customerName = req.body.customer_name;
+    const customerLocation = req.body.location;
+    const customerVehicle = req.body.vehicle;
+    const customerIssue = req.body.issue;
     
     // Get customer history/context if available
     let imageSummary = req.body.image_summary;
@@ -272,21 +380,22 @@ app.post('/api/bland-call', async (req, res) => {
         imageSummary = latestAnalysis.analysis;
         console.log('Using latest image analysis from:', latestAnalysis.timestamp);
       } else {
-        imageSummary = "Recent image shows flat rear right tire with visible damage to rim.";
+        imageSummary = "No image analysis available.";
       }
     }
     
+    // Use provided customer history or default to empty data if not present
     const customerHistory = {
-      previousIssues: req.body.previous_issues || ["Engine warning light (Resolved Feb 2023)", "Battery replacement (Resolved Oct 2022)"],
-      lastServiceDate: req.body.last_service_date || "March 15, 2023",
-      membership: req.body.membership || "Premium Roadside Assistance",
+      previousIssues: req.body.previous_issues || [],
+      lastServiceDate: req.body.last_service_date || "Not available",
+      membership: req.body.membership || "Standard",
       imageSummary: imageSummary
     };
     
     // Format customer history into a readable string
     const historyText = `
-      Customer Name: ${customerName}
-      Previous Issues: ${customerHistory.previousIssues.join(', ')}
+      Customer Name: ${customerName || 'Not provided'}
+      Previous Issues: ${customerHistory.previousIssues.length > 0 ? customerHistory.previousIssues.join(', ') : 'None recorded'}
       Last Service Date: ${customerHistory.lastServiceDate}
       Membership Level: ${customerHistory.membership}
       Image Analysis Summary: ${customerHistory.imageSummary}
@@ -298,13 +407,25 @@ app.post('/api/bland-call', async (req, res) => {
       return res.status(500).json({ error: 'Bland API key not configured' });
     }
 
+    // Get the host from request to dynamically set webhook URL
+    const host = req.headers.host || req.headers['x-forwarded-host'];
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const baseUrl = host.includes('ngrok') ? `https://${host}` : `${protocol}://${host}`;
+    
+    // Complete webhook URL
+    const webhookUrl = `${baseUrl}/api/bland-webhook`;
+    // Stream URL for real-time transcription
+    const streamUrl = `${baseUrl}/api/bland-stream`;
+    console.log('Using webhook URL:', webhookUrl);
+    console.log('Using stream URL:', streamUrl);
+
     const headers = {
       'Authorization': `Bearer ${blandApiKey}`,
       'Content-Type': 'application/json'
     };
 
     const data = {
-      "phone_number": "+" + customerPhone,
+      "phone_number": customerPhone.startsWith('+') ? customerPhone : `+${customerPhone}`,
       "voice": "Paige",
       "wait_for_greeting": false,
       "record": true,
@@ -319,14 +440,15 @@ app.post('/api/bland-call', async (req, res) => {
       "background_track": "none",
       "endpoint": "https://api.bland.ai",
       "voicemail_action": "hangup",
-      "task": `You are the FormelD Road Assistance AI agent. A customer named ${customerName} with a ${customerVehicle} has requested roadside assistance from ${customerLocation}. They have reported the following issue: "${customerIssue}".
+      "webhook_url": webhookUrl, // Add webhook URL to receive callbacks
+      "task": `You are the FormelD Road Assistance AI agent. A customer named ${customerName || 'the customer'} with a ${customerVehicle || 'vehicle'} has requested roadside assistance from ${customerLocation || 'their current location'}. They have reported the following issue: "${customerIssue || 'a vehicle issue'}".
       
       This is what we know about the customer from their history:
       ${historyText}
       
-      Introduce yourself as the FormelD Road Assistance AI. Acknowledge that you're speaking with ${customerName} and mention that you have access to their customer profile.
+      Introduce yourself as the FormelD Road Assistance AI. ${customerName ? `Acknowledge that you're speaking with ${customerName}` : 'Ask for the customer\'s name'} and mention that you have access to their customer profile.
       
-      Briefly reference their membership level and recent service history to personalize the conversation. Then confirm their current location and the issue they're experiencing with their ${customerVehicle}.
+      ${customerHistory.membership ? `Briefly reference their membership level (${customerHistory.membership})` : ''} ${customerHistory.previousIssues.length > 0 ? 'and recent service history' : ''} to personalize the conversation. Then confirm their current location and the issue they're experiencing with their vehicle.
       
       If their reported issue matches their image analysis summary, acknowledge this consistency. Ask them if there are any additional details about their situation they'd like to add.
       
@@ -337,7 +459,10 @@ app.post('/api/bland-call', async (req, res) => {
       Before ending the call, summarize the information collected and confirm the next steps. Provide a ticket number (use a random 6-digit number) for reference and let them know they will receive updates via SMS.
       
       Thank them for using FormelD Road Assistance and end the call politely.`,
-      "json_mode_enabled": false
+      "json_mode_enabled": false,
+      "streaming": true,
+      "stream_url": streamUrl,
+      "webhook_events": ['call.started', 'transcript.partial', 'call.in_progress', 'call.completed']
     };
 
     // Make API request to Bland.ai
@@ -347,7 +472,7 @@ app.post('/api/bland-call', async (req, res) => {
     console.log('Sending Bland.ai API request:', {
       url: 'https://api.bland.ai/v1/calls',
       headers: { 'Content-Type': headers['Content-Type'] }, // Don't log the actual API key
-      data: { ...data, phone_number: '****' } // Mask the phone number in logs
+      data: { ...data, phone_number: '****', webhook_url: webhookUrl } // Include webhook in logs but mask phone
     });
     
     const blandResponse = await axios.post('https://api.bland.ai/v1/calls', data, { headers });
@@ -357,6 +482,7 @@ app.post('/api/bland-call', async (req, res) => {
       callId: blandResponse.data.call_id,
       status: blandResponse.data.status,
       message: 'Call initiated successfully',
+      webhookUrl: webhookUrl, // Return webhook URL for confirmation
       customerInfo: {
         name: customerName,
         phone: customerPhone.replace(/\d(?=\d{4})/g, '*'), // Mask most digits except last 4
@@ -392,7 +518,7 @@ app.post('/api/bland-call', async (req, res) => {
   }
 });
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Use the HTTP server instead
+server.listen(PORT, () => {
+  console.log(`Server running with Socket.io on port ${PORT}`);
 }); 

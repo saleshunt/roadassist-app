@@ -63,6 +63,12 @@ export type WebhookCallData = {
   call_id: string;
   status: 'initiated' | 'in_progress' | 'completed' | 'failed';
   transcript?: string;
+  transcript_partial?: string;
+  transcript_segment?: {
+    speaker: 'ai' | 'user';
+    text: string;
+    timestamp: string;
+  };
   call_details?: Record<string, unknown>;
 }
 
@@ -84,6 +90,7 @@ type AppContextType = {
   userAnalysisResults: Record<string, AnalysisResult>
   addAnalysisResult: (userId: string, analysis: string, images: string[]) => void
   updateTicketFromWebhook: (callId: string, data: WebhookCallData) => void
+  getCurrentCallId: () => string | null
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -406,9 +413,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // Prepare call data with customer info and webhook URL
         const callData = {
           phone_number: currentCustomer.phone.replace(/\D/g, ''), // Strip non-digits from phone number
+          customer_name: currentCustomer.name,
           location: "Current Location, Cambridge, MA",
           vehicle: currentCustomer.vehicle.model,
           issue: "Vehicle won't start",
+          // Include membership if available
+          membership: "Premium Roadside Assistance",
+          // Include vehicle details
+          vehicle_year: currentCustomer.vehicle.year,
+          license_plate: currentCustomer.vehicle.licensePlate,
         };
 
         console.log('Attempting to call Bland.ai API with data:', {
@@ -462,10 +475,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     // Function to create a ticket after call is initiated or attempted
     const createCallTicket = (callId: string | null = null) => {
+      // Generate a more descriptive ticket title based on customer data
+      const issueTitle = currentCustomer.vehicle 
+        ? `Emergency roadside assistance for ${currentCustomer.vehicle.model}` 
+        : "Emergency roadside assistance";
+        
       const newTicket: Ticket = {
         id: `T${1000 + tickets.length + 1}`,
-        customer: currentCustomer,
-        issue: "Emergency roadside assistance" + (callId ? ` (Call ID: ${callId})` : ''),
+        customer: currentCustomer, // This already uses the current customer
+        issue: issueTitle + (callId ? ` (Call ID: ${callId})` : ''),
         category: "Vehicle won't start",
         status: "AI Agent Support",
         priority: "high",
@@ -481,7 +499,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         messages: [
           {
             id: "m1",
-            content: "I need emergency roadside assistance. My vehicle won't start.",
+            content: `I need emergency roadside assistance for my ${currentCustomer.vehicle ? currentCustomer.vehicle.model : 'vehicle'}. It won't start.`,
             sender: "customer",
             timestamp: new Date(),
           },
@@ -542,16 +560,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } else if (data.status === 'in_progress') {
         ticket.status = 'In Progress';
         
-        // Add in-progress message
-        addMessage(ticket.id, {
-          content: 'AI agent is currently on a call with the customer...',
-          sender: 'system',
-        });
+        // Add in-progress message if this is the first in_progress notification
+        const hasInProgressMessage = ticket.messages.some(
+          m => m.content.includes('AI agent is currently on a call')
+        );
+        
+        if (!hasInProgressMessage) {
+          addMessage(ticket.id, {
+            content: 'AI agent is currently on a call with the customer...',
+            sender: 'system',
+          });
+        }
+        
+        // If we have a partial transcript segment, add it
+        if (data.transcript_segment) {
+          const { speaker, text } = data.transcript_segment;
+          addMessage(ticket.id, {
+            content: text,
+            sender: speaker === 'ai' ? 'agent' : 'customer',
+          });
+        }
       }
       
       updatedTickets[ticketIndex] = ticket;
       return updatedTickets;
     });
+  };
+
+  // Add getCurrentCallId method
+  const getCurrentCallId = () => {
+    if (!selectedTicketId) return null;
+    
+    // Find the selected ticket
+    const selectedTicket = tickets.find(ticket => ticket.id === selectedTicketId);
+    if (!selectedTicket) return null;
+    
+    // Return the callId, if it exists
+    return selectedTicket.callId || null;
   };
 
   const updateCustomer = (ticketId: string, updatedCustomer: Customer) => {
@@ -605,6 +650,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         userAnalysisResults,
         addAnalysisResult,
         updateTicketFromWebhook,
+        getCurrentCallId,
       }}
     >
       {children}
