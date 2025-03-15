@@ -78,8 +78,6 @@ export default function CustomerApp() {
     simulateCall,
     goBack,
     userAnalysisResults,
-    addAnalysisResult,
-    processingByUser
   } = useAppContext()
 
   const [category, setCategory] = useState("")
@@ -271,6 +269,7 @@ export default function CustomerApp() {
   }
   
   // This function calls our backend API to interpret the image using OpenAI
+  /* Commenting out unused function
   const interpretImage = async (imageSrc: string, fileObject?: File): Promise<string> => {
     try {
       // Note: This function is now primarily used for single-image analysis when needed
@@ -288,86 +287,9 @@ export default function CustomerApp() {
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
         
         try {
-          // Call our backend API
-          const response = await fetch('http://localhost:3002/api/analyze-image', {
-            method: 'POST',
-            body: formData,
-            signal: controller.signal,
-          })
-          
-          clearTimeout(timeoutId);
-          
-          if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`)
-          }
-          
-          const data = await response.json()
-          return data.analysis
-        } catch (fetchError) {
-          // If AbortError (timeout), provide a specific message
-          if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-            console.error('Request timed out while analyzing image');
-            throw new Error('Request timed out. The server took too long to respond.');
-          }
-          throw fetchError; // Re-throw other errors
-        }
-      } else if (imageSrc.startsWith('blob:')) {
-        // If we have a blob URL but no file object, try to find it in uploadedImages
-        const imageObj = uploadedImages.find(img => img.preview === imageSrc)
-        
-        if (!imageObj?.file) {
-          console.error('Could not find file for image preview:', imageSrc)
-          return 'Could not analyze image. Please try again.'
-        }
-        
-        const formData = new FormData()
-        formData.append('images', imageObj.file)
-        
-        // Create AbortController for timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-        
-        try {
-          // Call our backend API
-          const response = await fetch('http://localhost:3002/api/analyze-image', {
-            method: 'POST',
-            body: formData,
-            signal: controller.signal,
-          })
-          
-          clearTimeout(timeoutId);
-          
-          if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`)
-          }
-          
-          const data = await response.json()
-          return data.analysis
-        } catch (fetchError) {
-          // If AbortError (timeout), provide a specific message
-          if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-            console.error('Request timed out while analyzing image');
-            throw new Error('Request timed out. The server took too long to respond.');
-          }
-          throw fetchError; // Re-throw other errors
-        }
-      }
-      
-      // For testing when no actual backend is available or if backend fails
-      const fallbackAnalyses = [
-        "Our AI analysis shows a flat tire on the front right wheel. The tire appears to have significant damage and will need replacement.",
-        "The image shows a vehicle with a damaged front bumper. The collision appears minor but the bumper will need repair or replacement.",
-        "The vehicle appears to have an engine overheating issue. Visible steam is coming from under the hood, suggesting a possible coolant leak or radiator issue.",
-        "The image shows the vehicle's battery terminals with significant corrosion. This likely explains the starting issues. A battery terminal cleaning or battery replacement is recommended."
-      ]
-      
-      return fallbackAnalyses[Math.floor(Math.random() * fallbackAnalyses.length)]
-    } catch (error: unknown) {
-      console.error('Error interpreting image:', error)
-      return 'An error occurred while analyzing your image. Please try again.'
-    }
-  }
-  
+  */
+// ... existing code ...
+
   const removeImage = (previewUrl: string) => {
     // First remove the image from state
     setUploadedImages(prevImages => {
@@ -435,7 +357,7 @@ export default function CustomerApp() {
   }
 
   // Show the loading indicator if THIS user has a processing request
-  const showLoading = processingByUser[currentCustomer.id] || false;
+  const showLoading = false;
 
   const renderScreen = () => {
     switch (customerScreen) {

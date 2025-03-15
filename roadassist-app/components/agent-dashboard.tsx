@@ -29,7 +29,6 @@ export default function AgentDashboard() {
     tickets, 
     selectedTicketId, 
     selectTicket, 
-    addMessage, 
     updateTicketStatus, 
     updateCustomer, 
     currentCustomer,
