@@ -74,7 +74,7 @@ export async function makeAiCall(
   
   // Construct the payload
   const payload: BlandCallRequest = {
-    phone_number: cleanedPhone,
+    phone_number: "+" + cleanedPhone,
     issue,
     vehicle: additionalInfo.vehicle,
     location: additionalInfo.location,

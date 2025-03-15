@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useRef, useCallback } from "react"
 import { useAppContext, type TicketStatus, type Customer } from "./app-context"
+import Image from "next/image"
 import {
   Search,
   Filter,
@@ -355,9 +356,11 @@ export default function AgentDashboard() {
                           </div>
                         </div>
                         {message.imageUrl && (
-                          <img
+                          <Image
                             src={message.imageUrl || "/placeholder.svg"}
                             alt="Uploaded"
+                            width={480}
+                            height={240}
                             className="w-full max-h-60 object-contain rounded mb-2"
                           />
                         )}

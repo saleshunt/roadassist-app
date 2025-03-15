@@ -20,11 +20,17 @@ export async function POST(request: Request) {
     // Get the request data
     const requestData = await request.json() as BlandCallRequest;
     
-    // Validate phone number
+    // Validate phone number and ensure it has + prefix
     if (!requestData.phone_number || requestData.phone_number.length < 10) {
       return NextResponse.json({
         error: 'Invalid phone number'
       }, { status: 400 });
+    }
+    
+    // Ensure phone number has + prefix
+    let phoneNumber = requestData.phone_number;
+    if (!phoneNumber.startsWith('+')) {
+      phoneNumber = '+' + phoneNumber;
     }
     
     // Build the task content for the AI call
@@ -32,7 +38,7 @@ export async function POST(request: Request) {
     
     // Prepare the API request payload
     const apiPayload = {
-      phone_number: requestData.phone_number,
+      phone_number: phoneNumber, // Use the ensured + prefix number
       task: taskContent,
       webhook: webhookUrl || requestData.webhook, // Use environment variable or fallback to request
       webhook_events: requestData.webhook_events || ['call.completed', 'call.started', 'call.in_progress'],
@@ -43,7 +49,7 @@ export async function POST(request: Request) {
     
     console.log('Calling Bland API with payload:', {
       ...apiPayload,
-      phone_number: '****' // Mask phone number in logs
+      phone_number: phoneNumber.substring(0, 3) + '****' // Show + and country code but mask the rest
     });
     
     // Call the Bland API

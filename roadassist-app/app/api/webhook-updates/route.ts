@@ -6,6 +6,14 @@ import path from 'path';
 const dataDir = path.join(process.cwd(), 'data');
 const webhookLogFile = path.join(dataDir, 'bland-webhooks.json');
 
+// Define a type for webhook data
+interface WebhookData {
+  call_id: string;
+  timestamp: string;
+  status?: string;
+  [key: string]: unknown;
+}
+
 export async function GET(request: Request) {
   try {
     // Get query params
@@ -18,17 +26,18 @@ export async function GET(request: Request) {
     if (sinceParam) {
       try {
         since = new Date(sinceParam);
-      } catch (error) {
+      } catch {
+        // Invalid date format
         console.warn('Invalid since parameter:', sinceParam);
       }
     }
     
     // Try to read the webhook log file
-    let webhooks = [];
+    let webhooks: WebhookData[] = [];
     try {
       const existingData = await fs.readFile(webhookLogFile, 'utf-8');
       webhooks = JSON.parse(existingData);
-    } catch (error) {
+    } catch {
       // File doesn't exist or is invalid, return empty array
       return NextResponse.json({ webhooks: [] });
     }
@@ -37,19 +46,19 @@ export async function GET(request: Request) {
     if (webhooks.length > 0) {
       // Filter by callId if provided
       if (callId) {
-        webhooks = webhooks.filter((webhook: any) => webhook.call_id === callId);
+        webhooks = webhooks.filter((webhook) => webhook.call_id === callId);
       }
       
       // Filter by timestamp if provided
       if (since instanceof Date && !isNaN(since.getTime())) {
-        webhooks = webhooks.filter((webhook: any) => {
+        webhooks = webhooks.filter((webhook) => {
           const webhookTime = new Date(webhook.timestamp);
           return webhookTime > since;
         });
       }
       
       // Sort by timestamp (newest first)
-      webhooks.sort((a: any, b: any) => {
+      webhooks.sort((a, b) => {
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
       });
     }
@@ -61,8 +70,9 @@ export async function GET(request: Request) {
         since: since ? since.toISOString() : undefined
       }
     });
-  } catch (error) {
-    console.error('Error fetching webhook updates:', error);
+  } catch {
+    // Error processing request
+    console.error('Error fetching webhook updates');
     return NextResponse.json({ error: 'Failed to fetch webhook updates' }, { status: 500 });
   }
 } 

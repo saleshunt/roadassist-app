@@ -57,17 +57,44 @@ npm install
 
 ## Running the Project
 
-```bash
-# Start the backend server
-cd roadassist-backend
-npm run dev
+### Running the Backend Server
 
-# In a separate terminal, start the frontend
+Navigate to the backend directory from the project root:
+
+```bash
+cd roadassist-backend
+```
+
+Start the backend server using Node.js:
+
+```bash
+node server.js
+```
+
+You should see the message "Server running on port 3002" indicating that the backend is running successfully.
+
+### Running the Frontend Application
+
+In a separate terminal, navigate to the frontend directory from the project root:
+
+```bash
 cd roadassist-app
+```
+
+Start the Next.js development server:
+
+```bash
 npm run dev
 ```
 
-The application will be available at http://localhost:3000
+The frontend application will be available at http://localhost:3000
+
+### Important Notes
+
+- Both servers (frontend and backend) need to be running simultaneously for the application to work properly
+- The frontend makes API calls to the backend on port 3002
+- Make sure you're in the correct directory when running each command
+- If you encounter "module not found" errors, verify you're in the correct directory
 
 ## Webhook Integration
 

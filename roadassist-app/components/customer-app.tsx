@@ -5,6 +5,7 @@ import { useAppContext } from "./app-context"
 import { FormeldLogo } from "./formeld-logo"
 import { MapPin, Battery, Camera, ArrowLeft, Phone, Info, CheckCircle, AlertTriangle } from "lucide-react"
 import CustomerSwitcher from "./customer-switcher"
+import Image from "next/image"
 
 // A simple markdown renderer component
 const MarkdownRenderer = ({ content }: { content: string }) => {
@@ -71,7 +72,6 @@ export default function CustomerApp() {
     customerScreen,
     setCustomerScreen,
     createNewTicket,
-    uploadPhoto,
     selectedTicketId,
     tickets,
     currentCustomer,
@@ -87,7 +87,6 @@ export default function CustomerApp() {
   const [showCarStatusModal, setShowCarStatusModal] = useState(false)
   const [uploadedImages, setUploadedImages] = useState<Array<{file: File | null, preview: string, processed: boolean}>>([])
   const [combinedAnalysis, setCombinedAnalysis] = useState<string>("")
-  const [isInterpretingImages, setIsInterpretingImages] = useState(false)
   const [apiConnectionError, setApiConnectionError] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -174,12 +173,10 @@ export default function CustomerApp() {
         }
       }
     }
-  }, [currentCustomer.id]);
+  }, [currentCustomer.id, userAnalysisResults, uploadedImages]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, fromHome: boolean = false) => {
     if (e.target.files && e.target.files.length > 0) {
-      setIsInterpretingImages(true)
-      
       const newImages = Array.from(e.target.files).map(file => ({
         file: file,
         preview: URL.createObjectURL(file),
@@ -190,29 +187,25 @@ export default function CustomerApp() {
       setUploadedImages(prev => [...prev, ...newImages])
       
       try {
-        // Get ALL images - both previous and new ones
-        const allImages = [...uploadedImages, ...newImages]
-        
-        // Send all images together for combined analysis
+        // Create form data with all images
         const formData = new FormData()
         
-        // Find all images that have file objects
-        const validImages = allImages.filter(img => img.file)
-        
+        // Validate we have at least one valid image
+        const validImages = newImages.filter(img => img.file)
         if (validImages.length === 0) {
           throw new Error('No valid image files found')
         }
         
-        // Add all images to the form data
+        // Add all valid images to form data
         validImages.forEach(img => {
           if (img.file) formData.append('images', img.file)
         })
         
         // Create AbortController for timeout
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 second timeout for multiple images
+        const timeoutId = setTimeout(() => controller.abort(), 25000)
         
-        // Call our backend API with all images
+        // Call our backend API
         const response = await fetch('http://localhost:3002/api/analyze-image', {
           method: 'POST',
           body: formData,
@@ -226,10 +219,9 @@ export default function CustomerApp() {
         }
         
         const data = await response.json()
-        const analysis = data.analysis
         
-        // Store the combined analysis
-        setCombinedAnalysis(analysis)
+        // Update state with analysis results
+        setCombinedAnalysis(data.analysis)
         
         // Mark all images as processed
         setUploadedImages(current => {
@@ -239,10 +231,9 @@ export default function CustomerApp() {
           }))
         })
         
-        // Only upload the first image to ticket if not from home screen
-        // This avoids creating multiple messages for the same upload
-        if (!fromHome && newImages.length > 0) {
-          uploadPhoto(newImages[0].preview)
+        // If we're on the home screen, navigate to the details screen
+        if (fromHome) {
+          setCustomerScreen('support')
         }
       } catch (error) {
         console.error('Error processing images:', error)
@@ -258,8 +249,6 @@ export default function CustomerApp() {
         // Set an error message for the analysis
         setCombinedAnalysis('An error occurred while analyzing your images. Please try again.')
       } finally {
-        setIsInterpretingImages(false)
-        
         // Clear the file input to allow re-uploading the same file
         if (fileInputRef.current) {
           fileInputRef.current.value = ""
@@ -288,7 +277,6 @@ export default function CustomerApp() {
         
         try {
   */
-// ... existing code ...
 
   const removeImage = (previewUrl: string) => {
     // First remove the image from state
@@ -304,15 +292,12 @@ export default function CustomerApp() {
       // Re-analyze the remaining images
       const reanalyzeImages = async () => {
         try {
-          setIsInterpretingImages(true)
-          
           // Create form data with all remaining images
           const formData = new FormData()
           const validImages = updatedImages.filter(img => img.file)
           
           if (validImages.length === 0) {
             setCombinedAnalysis('')
-            setIsInterpretingImages(false)
             return
           }
           
@@ -342,8 +327,6 @@ export default function CustomerApp() {
         } catch (error) {
           console.error('Error re-analyzing images after removal:', error)
           // Keep existing analysis or set an error message
-        } finally {
-          setIsInterpretingImages(false)
         }
       }
       
@@ -561,9 +544,11 @@ export default function CustomerApp() {
                                 </button>
                               </div>
                               <div className="relative">
-                                <img 
+                                <Image 
                                   src={img.preview} 
                                   alt={`Uploaded ${index + 1}`} 
+                                  width={320}
+                                  height={240}
                                   className="w-full h-32 object-cover rounded-lg mb-2"
                                 />
                                 {!img.processed && (
@@ -722,9 +707,11 @@ export default function CustomerApp() {
                       </button>
                     </div>
                     <div className="relative">
-                      <img 
+                      <Image 
                         src={img.preview} 
                         alt={`Uploaded ${index + 1}`} 
+                        width={320}
+                        height={240}
                         className="w-full rounded-lg mb-3 max-h-64 object-contain"
                       />
                       {!img.processed && (
@@ -942,9 +929,11 @@ export default function CustomerApp() {
                               </button>
                             </div>
                             <div className="relative">
-                              <img 
+                              <Image 
                                 src={img.preview} 
                                 alt={`Uploaded ${index + 1}`} 
+                                width={320}
+                                height={240}
                                 className="w-full h-32 object-cover rounded-lg mb-2"
                               />
                               {!img.processed && (
@@ -1017,9 +1006,11 @@ export default function CustomerApp() {
                     {selectedTicket.messages.find((m) => m.imageUrl) && (
                       <div className="mb-4">
                         <h4 className="font-medium text-gray-700 mb-1">Uploaded Image</h4>
-                        <img
+                        <Image
                           src={selectedTicket.messages.find((m) => m.imageUrl)?.imageUrl || "/placeholder.svg"}
                           alt="Uploaded"
+                          width={320}
+                          height={240}
                           className="w-full max-h-60 object-contain rounded mt-2"
                         />
                       </div>
@@ -1067,9 +1058,11 @@ export default function CustomerApp() {
                         >
                           {message.imageUrl && (
                             <div className="mb-2">
-                              <img 
+                              <Image 
                                 src={message.imageUrl} 
                                 alt="Uploaded" 
+                                width={320}
+                                height={240}
                                 className="rounded max-h-40 w-auto"
                               />
                             </div>
@@ -1194,7 +1187,7 @@ export default function CustomerApp() {
                       <div>
                         <h3 className="text-sm font-medium text-yellow-800">Connection Issue</h3>
                         <p className="text-sm text-yellow-700 mt-1">
-                          We're having trouble connecting to our call service. We'll create a support ticket for you instead.
+                          We&apos;re having trouble connecting to our call service. We&apos;ll create a support ticket for you instead.
                         </p>
                       </div>
                     </div>

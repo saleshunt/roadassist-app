@@ -304,7 +304,7 @@ app.post('/api/bland-call', async (req, res) => {
     };
 
     const data = {
-      "phone_number": customerPhone,
+      "phone_number": "+" + customerPhone,
       "voice": "Paige",
       "wait_for_greeting": false,
       "record": true,

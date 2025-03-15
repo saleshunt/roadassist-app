@@ -11,7 +11,7 @@ export default function WebhookTest() {
   const [callId, setCallId] = useState('test-call-id')
   const [status, setStatus] = useState('in_progress')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<Record<string, unknown> | null>(null)
 
   const sendTestWebhook = async () => {
     setLoading(true)
@@ -19,7 +19,7 @@ export default function WebhookTest() {
       // Create test webhook data
       const webhookData: WebhookCallData = {
         call_id: callId,
-        status: status as any,
+        status: status as 'initiated' | 'in_progress' | 'completed' | 'failed',
         transcript: 'This is a test transcript from a simulated call',
         call_details: {
           duration: 120,
