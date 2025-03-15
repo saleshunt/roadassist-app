@@ -72,6 +72,7 @@ export default function CustomerApp() {
     customerScreen,
     setCustomerScreen,
     createNewTicket,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     uploadPhoto,
     selectedTicketId,
     tickets,
