@@ -1,0 +1,24 @@
+{
+  "name": "roadassist",
+  "version": "1.0.0",
+  "description": "A roadside assistance application for vehicle diagnostics and emergency assistance",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"cd roadassist-backend && npm run dev\" \"cd roadassist-app && npm run dev\"",
+    "dev:turbo": "concurrently \"cd roadassist-backend && npm run dev\" \"cd roadassist-app && npm run dev:turbo\"",
+    "start": "concurrently \"cd roadassist-backend && npm start\" \"cd roadassist-app && npm start\"",
+    "install-all": "npm install && cd roadassist-app && npm install && cd ../roadassist-backend && npm install"
+  },
+  "keywords": [
+    "roadside",
+    "assistance",
+    "vehicle",
+    "diagnostics",
+    "ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 
