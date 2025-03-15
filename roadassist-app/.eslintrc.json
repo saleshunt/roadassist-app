@@ -8,5 +8,5 @@
     "react-hooks/exhaustive-deps": "off",
     "@next/next/no-img-element": "off"
   },
-  "ignorePatterns": ["./app/api/**/*"]
+  "ignorePatterns": ["app/api/**/*"]
 } 
