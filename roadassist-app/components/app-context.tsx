@@ -47,6 +47,7 @@ export type Ticket = {
     }
   }
   messages: Message[]
+  callId?: string // Add callId to track associated Bland AI calls
 }
 
 export type CustomerAppScreen = "home" | "call" | "support" | "request" | "photo" | "status"
@@ -56,6 +57,13 @@ export type AnalysisResult = {
   analysis: string;
   images: string[]; // URLs of the analyzed images
   timestamp: Date;
+}
+
+export type WebhookCallData = {
+  call_id: string;
+  status: 'initiated' | 'in_progress' | 'completed' | 'failed';
+  transcript?: string;
+  call_details?: Record<string, unknown>;
 }
 
 type AppContextType = {
@@ -75,6 +83,7 @@ type AppContextType = {
   updateCustomer: (ticketId: string, updatedCustomer: Customer) => void
   userAnalysisResults: Record<string, AnalysisResult>
   addAnalysisResult: (userId: string, analysis: string, images: string[]) => void
+  updateTicketFromWebhook: (callId: string, data: WebhookCallData) => void
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -394,44 +403,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Call Bland.ai API for voice call
     const callBlandApi = async () => {
       try {
-        // Check if the backend is reachable first
-        let isServerReachable = false;
-        try {
-          // Create an AbortController to handle timeout
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-          
-          console.log('Checking backend server connection...');
-          const pingResponse = await fetch('http://localhost:3002/api/ping', {
-            signal: controller.signal,
-            cache: 'no-store'
-          });
-          
-          // Clear the timeout since the request completed
-          clearTimeout(timeoutId);
-          
-          if (pingResponse.ok) {
-            const pingData = await pingResponse.json();
-            console.log('Backend server ping response:', pingData);
-            isServerReachable = true;
-          } else {
-            throw new Error(`Server responded with status: ${pingResponse.status}`);
-          }
-        } catch (pingError) {
-          console.error('Backend server unreachable:', pingError);
-          throw new Error('Backend server is not reachable. Please check if it is running.');
-        }
-
-        if (!isServerReachable) {
-          throw new Error('Could not connect to backend server.');
-        }
-
-        // Prepare call data with customer info
+        // Prepare call data with customer info and webhook URL
         const callData = {
           phone_number: currentCustomer.phone.replace(/\D/g, ''), // Strip non-digits from phone number
           location: "Current Location, Cambridge, MA",
           vehicle: currentCustomer.vehicle.model,
-          issue: "Vehicle won't start"
+          issue: "Vehicle won't start",
         };
 
         console.log('Attempting to call Bland.ai API with data:', {
@@ -439,22 +416,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
           phone_number: '****' // Mask the phone number in logs
         });
 
-        // Call our backend API endpoint with timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout for API call
-        
-        const response = await fetch('http://localhost:3002/api/bland-call', {
+        // Call our API endpoint
+        const response = await fetch('/api/bland-call', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(callData),
-          signal: controller.signal
+          body: JSON.stringify(callData)
         });
         
-        // Clear the timeout since the request completed
-        clearTimeout(timeoutId);
-
         // First try to get the raw response
         const responseText = await response.text();
         console.log('Raw API response:', responseText);
@@ -491,7 +461,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     // Function to create a ticket after call is initiated or attempted
-    const createCallTicket = (callId = null) => {
+    const createCallTicket = (callId: string | null = null) => {
       const newTicket: Ticket = {
         id: `T${1000 + tickets.length + 1}`,
         customer: currentCustomer,
@@ -516,6 +486,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             timestamp: new Date(),
           },
         ],
+        callId: callId || undefined
       };
 
       // Update ticket state
@@ -541,6 +512,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
       callBlandApi();
     }, 2000);
   }
+
+  // New method to update ticket based on webhook data
+  const updateTicketFromWebhook = (callId: string, data: WebhookCallData) => {
+    // Find the ticket with the matching callId
+    const ticketIndex = tickets.findIndex(ticket => ticket.callId === callId);
+    
+    if (ticketIndex === -1) {
+      console.warn(`No ticket found with callId: ${callId}`);
+      return;
+    }
+    
+    // Update ticket based on webhook data
+    setTickets(prevTickets => {
+      const updatedTickets = [...prevTickets];
+      const ticket = {...updatedTickets[ticketIndex]};
+      
+      // Update ticket based on call status
+      if (data.status === 'completed') {
+        ticket.status = 'Resolved';
+        
+        // Add transcript to messages if available
+        if (data.transcript) {
+          addMessage(ticket.id, {
+            content: `Call completed. Transcript: ${data.transcript}`,
+            sender: 'system',
+          });
+        }
+      } else if (data.status === 'in_progress') {
+        ticket.status = 'In Progress';
+        
+        // Add in-progress message
+        addMessage(ticket.id, {
+          content: 'AI agent is currently on a call with the customer...',
+          sender: 'system',
+        });
+      }
+      
+      updatedTickets[ticketIndex] = ticket;
+      return updatedTickets;
+    });
+  };
 
   const updateCustomer = (ticketId: string, updatedCustomer: Customer) => {
     // Update the ticket's customer
@@ -592,6 +604,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateCustomer,
         userAnalysisResults,
         addAnalysisResult,
+        updateTicketFromWebhook,
       }}
     >
       {children}
