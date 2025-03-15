@@ -14,8 +14,7 @@ const webhookLogFile = path.join(dataDir, 'bland-webhooks.json');
 async function ensureDataDir() {
   try {
     await fs.access(dataDir);
-  } catch {
-    // Directory doesn't exist, create it
+  } catch (_) {
     await fs.mkdir(dataDir, { recursive: true });
   }
 }
@@ -30,7 +29,7 @@ async function logWebhook(data: WebhookCallData) {
     try {
       const existingData = await fs.readFile(webhookLogFile, 'utf-8');
       webhooks = JSON.parse(existingData);
-    } catch {
+    } catch (_) {
       // File doesn't exist or is invalid, start with empty array
       webhooks = [];
     }
@@ -43,8 +42,8 @@ async function logWebhook(data: WebhookCallData) {
     
     // Write updated log back to file
     await fs.writeFile(webhookLogFile, JSON.stringify(webhooks, null, 2), 'utf-8');
-  } catch {
-    console.error('Error logging webhook');
+  } catch (_) {
+    console.error('Error logging webhook:');
   }
 }
 

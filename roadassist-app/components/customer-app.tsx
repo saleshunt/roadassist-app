@@ -72,6 +72,7 @@ export default function CustomerApp() {
     customerScreen,
     setCustomerScreen,
     createNewTicket,
+    uploadPhoto,
     selectedTicketId,
     tickets,
     currentCustomer,
@@ -175,7 +176,7 @@ export default function CustomerApp() {
     }
   }, [currentCustomer.id, userAnalysisResults, uploadedImages]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, fromHome: boolean = false) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const newImages = Array.from(e.target.files).map(file => ({
         file: file,
@@ -230,11 +231,6 @@ export default function CustomerApp() {
             processed: true
           }))
         })
-        
-        // If we're on the home screen, navigate to the details screen
-        if (fromHome) {
-          setCustomerScreen('support')
-        }
       } catch (error) {
         console.error('Error processing images:', error)
         
@@ -494,7 +490,7 @@ export default function CustomerApp() {
                       multiple
                       className="hidden"
                       id="image-upload-home"
-                      onChange={(e) => handleImageUpload(e, true)}
+                      onChange={handleImageUpload}
                     />
                     <label
                       htmlFor="image-upload-home"
