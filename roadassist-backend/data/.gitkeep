@@ -1,0 +1,2 @@
+# This file exists only to ensure the data directory is created and tracked in Git
+# Webhook logs and other data will be stored here but not tracked in version control 
