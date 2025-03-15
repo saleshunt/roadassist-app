@@ -355,6 +355,191 @@ app.post('/api/test-transcript-stream', express.json(), (req, res) => {
   }
 });
 
+// Add endpoint to handle Bland AI webhooks
+app.post('/api/bland-webhook', express.json(), (req, res) => {
+  try {
+    const payload = req.body;
+    
+    // Log webhook data for debugging
+    console.log('Received Bland AI webhook on backend:', payload);
+    
+    // Check if this is a valid webhook with a call_id
+    if (!payload.call_id) {
+      console.warn('Invalid webhook data: missing call_id');
+      return res.status(400).json({ error: 'Missing call_id' });
+    }
+    
+    // Initialize call transcript if needed
+    if (!activeCallsTranscripts[payload.call_id]) {
+      activeCallsTranscripts[payload.call_id] = [];
+    }
+    
+    // Handle different webhook events
+    const eventType = payload.event || '';
+    
+    switch(eventType) {
+      case 'call.started':
+        console.log(`Call started: ${payload.call_id}`);
+        // Emit call started event
+        io.emit('call_status', {
+          call_id: payload.call_id,
+          status: 'started'
+        });
+        break;
+        
+      case 'transcript.partial':
+        console.log(`Partial transcript for call: ${payload.call_id}`);
+        
+        // If we have a transcript segment, emit it
+        if (payload.transcript_segment) {
+          const transcriptSegment = {
+            speaker: payload.transcript_segment.speaker || 'ai',
+            text: payload.transcript_segment.text,
+            timestamp: payload.transcript_segment.timestamp || new Date().toISOString()
+          };
+          
+          // Add to active calls transcript
+          activeCallsTranscripts[payload.call_id].push(transcriptSegment);
+          
+          // Emit to all connected clients
+          io.emit('transcript_update', {
+            call_id: payload.call_id,
+            transcript_segment: transcriptSegment
+          });
+        }
+        break;
+        
+      case 'call.in_progress':
+        console.log(`Call in progress: ${payload.call_id}`);
+        // Emit call in progress event
+        io.emit('call_status', {
+          call_id: payload.call_id,
+          status: 'in_progress'
+        });
+        break;
+        
+      case 'call.completed':
+        console.log(`Call completed: ${payload.call_id}`);
+        
+        // Emit call completed event
+        io.emit('call_status', {
+          call_id: payload.call_id,
+          status: 'completed',
+          transcript: payload.transcript
+        });
+        
+        break;
+        
+      default:
+        console.log(`Received event type: ${eventType}`);
+    }
+    
+    // Return success response
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error handling Bland AI webhook on backend:', error);
+    // Still return 200 to prevent Bland AI from retrying
+    return res.status(200).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Also add the same endpoint without the /api prefix
+app.post('/bland-webhook', express.json(), (req, res) => {
+  try {
+    const payload = req.body;
+    
+    // Log webhook data for debugging
+    console.log('Received Bland AI webhook on root endpoint:', payload);
+    
+    // Check if this is a valid webhook with a call_id
+    if (!payload.call_id) {
+      console.warn('Invalid webhook data: missing call_id');
+      return res.status(400).json({ error: 'Missing call_id' });
+    }
+    
+    // Initialize call transcript if needed
+    if (!activeCallsTranscripts[payload.call_id]) {
+      activeCallsTranscripts[payload.call_id] = [];
+    }
+    
+    // Handle different webhook events
+    const eventType = payload.event || '';
+    
+    switch(eventType) {
+      case 'call.started':
+        console.log(`Call started: ${payload.call_id}`);
+        // Emit call started event
+        io.emit('call_status', {
+          call_id: payload.call_id,
+          status: 'started'
+        });
+        break;
+        
+      case 'transcript.partial':
+        console.log(`Partial transcript for call: ${payload.call_id}`);
+        
+        // If we have a transcript segment, emit it
+        if (payload.transcript_segment) {
+          const transcriptSegment = {
+            speaker: payload.transcript_segment.speaker || 'ai',
+            text: payload.transcript_segment.text,
+            timestamp: payload.transcript_segment.timestamp || new Date().toISOString()
+          };
+          
+          // Add to active calls transcript
+          activeCallsTranscripts[payload.call_id].push(transcriptSegment);
+          
+          // Emit to all connected clients
+          io.emit('transcript_update', {
+            call_id: payload.call_id,
+            transcript_segment: transcriptSegment
+          });
+        }
+        break;
+        
+      case 'call.in_progress':
+        console.log(`Call in progress: ${payload.call_id}`);
+        // Emit call in progress event
+        io.emit('call_status', {
+          call_id: payload.call_id,
+          status: 'in_progress'
+        });
+        break;
+        
+      case 'call.completed':
+        console.log(`Call completed: ${payload.call_id}`);
+        
+        // Emit call completed event
+        io.emit('call_status', {
+          call_id: payload.call_id,
+          status: 'completed',
+          transcript: payload.transcript
+        });
+        
+        break;
+        
+      default:
+        console.log(`Received event type: ${eventType}`);
+    }
+    
+    // Return success response
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error handling Bland AI webhook on root endpoint:', error);
+    // Still return 200 to prevent Bland AI from retrying
+    return res.status(200).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Add a health endpoint for the webhook
+app.get('/bland-webhook-health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    message: 'Bland webhook endpoint is ready',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Modify the existing Bland AI call endpoint to enable streaming
 app.post('/api/bland-call', async (req, res) => {
   try {
@@ -410,10 +595,49 @@ app.post('/api/bland-call', async (req, res) => {
     // Get the host from request to dynamically set webhook URL
     const host = req.headers.host || req.headers['x-forwarded-host'];
     const protocol = req.headers['x-forwarded-proto'] || 'http';
-    const baseUrl = host.includes('ngrok') ? `https://${host}` : `${protocol}://${host}`;
     
-    // Complete webhook URL
-    const webhookUrl = `${baseUrl}/api/bland-webhook`;
+    // Check if this is from ngrok
+    const isNgrok = host && host.includes('ngrok');
+    
+    // First check if we're explicitly being told about the ngrok URL
+    const ngrokUrl = req.headers['x-ngrok-url'] || process.env.NGROK_URL;
+    
+    // Base URL determination:
+    // 1. Use the provided ngrok URL if available
+    // 2. If the host contains 'ngrok', use https with that host
+    // 3. Otherwise use the protocol and host as normal
+    let baseUrl;
+    if (ngrokUrl) {
+      baseUrl = ngrokUrl;
+    } else if (isNgrok) {
+      baseUrl = `https://${host}`;
+    } else {
+      // This is likely a local request - check if we're running via localhost
+      if (host && host.includes('localhost')) {
+        // For local development, prefer using ngrok URL if we know about a running tunnel
+        try {
+          // Try to fetch info from the ngrok API
+          const axios = require('axios');
+          const ngrokApiResponse = await axios.get('http://localhost:4040/api/tunnels');
+          if (ngrokApiResponse.data && ngrokApiResponse.data.tunnels && ngrokApiResponse.data.tunnels.length > 0) {
+            // Use the first tunnel's public URL
+            baseUrl = ngrokApiResponse.data.tunnels[0].public_url;
+            console.log('Detected ngrok tunnel:', baseUrl);
+          } else {
+            baseUrl = `${protocol}://${host}`;
+          }
+        } catch (error) {
+          // If we can't reach the ngrok API or something else went wrong, use the default
+          console.log('Could not detect ngrok tunnel, using standard URL');
+          baseUrl = `${protocol}://${host}`;
+        }
+      } else {
+        baseUrl = `${protocol}://${host}`;
+      }
+    }
+    
+    // Complete webhook URL - always use the ngrok URL if available
+    const webhookUrl = `${baseUrl}/bland-webhook`;
     // Stream URL for real-time transcription
     const streamUrl = `${baseUrl}/api/bland-stream`;
     console.log('Using webhook URL:', webhookUrl);

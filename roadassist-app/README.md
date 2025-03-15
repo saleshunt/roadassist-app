@@ -20,6 +20,16 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Features
+
+- Dual-panel interface with customer and agent views
+- AI-powered roadside assistance
+- Image analysis for vehicle issues
+- Live call transcription
+- Ticket management system
+- User management system with CRUD operations
+- Development tools for testing and debugging
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

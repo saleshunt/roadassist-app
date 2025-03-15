@@ -371,7 +371,7 @@ export default function CustomerApp() {
           <div className="flex flex-col h-full">
             <CustomerAppHeader />
             
-            <div className="mb-4 bg-white p-4 rounded-lg shadow-sm border-l-4 border-bmw-blue">
+            <div className="mb-4 bg-white p-4 rounded-lg shadow-sm">
               <div className="flex items-center mt-1">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -391,7 +391,6 @@ export default function CustomerApp() {
                 <p className="text-sm text-gray-600">Your Roadside Assistance is always ready for you</p>
               </div>
             </div>
-            
             {/* Expandable Car Info Section */}
             <div className="mb-4">
               <button 
@@ -409,7 +408,7 @@ export default function CustomerApp() {
                 className="w-full bg-white p-4 rounded-lg shadow-md border border-gray-100 flex justify-between items-center"
               >
                 <div className="flex items-center">
-                  <h3 className="text-sm font-medium text-bmw-blue uppercase tracking-wide">Car info</h3>
+                  <h3 className="text-sm font-medium text-bmw-blue tracking-wide">Vehicle info</h3>
                 </div>
                 <span id="car-info-expand-icon" className="text-gray-500 text-xl font-medium">+</span>
               </button>

@@ -17,6 +17,16 @@ A roadside assistance application for vehicle diagnostics and emergency assistan
 - Customer ticket management
 - AI voice calling integration with Bland.ai
 
+## Key Features
+
+- AI-powered roadside assistance
+- Real-time call transcription
+- Image analysis for vehicle issues
+- Agent dashboard for support personnel
+- Customer mobile interface
+- User management system with CRUD operations
+- Ticket tracking and management
+
 ## Installation
 
 ```bash

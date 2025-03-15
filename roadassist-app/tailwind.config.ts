@@ -49,7 +49,9 @@ export default {
   				'3': 'hsl(var(--chart-3))',
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
-  			}
+  			},
+  			'bmw-blue': '#1c69d4',
+  			'bmw-blue-dark': '#0653b6',
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

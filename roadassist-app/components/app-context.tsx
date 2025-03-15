@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext, useState, type ReactNode, useEffect } from "react"
 
 // Define types
 export type Vehicle = {
@@ -97,21 +97,90 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 
 // Sample data
 const sampleCustomer: Customer = {
-  id: "C12345",
-  name: "Alex Johnson",
-  phone: "+1 (555) 123-4567",
+  id: "C98765",
+  name: "Emma Martinez", 
+  phone: "+1 (555) 789-4561",
   vehicle: {
-    model: "Porsche Cayenne",
-    year: "2022",
-    licensePlate: "BMW-2022",
-    fuelStatus: "75%",
+    model: "Mercedes-Benz GLC",
+    year: "2023",
+    licensePlate: "MRZ-2023",
+    fuelStatus: "85%",
   },
 }
+
+// Additional users to populate the system
+const additionalUsers: Customer[] = [
+  {
+    id: "C23456",
+    name: "Michael Chen",
+    phone: "+1 (555) 234-5678",
+    vehicle: {
+      model: "BMW X5",
+      year: "2022",
+      licensePlate: "CHN-5678",
+      fuelStatus: "65%",
+    },
+  },
+  {
+    id: "C34567",
+    name: "Sofia Rodriguez",
+    phone: "+1 (555) 345-6789",
+    vehicle: {
+      model: "Audi Q7",
+      year: "2021",
+      licensePlate: "RDZ-6789",
+      fuelStatus: "45%",
+    },
+  },
+  {
+    id: "C45678",
+    name: "David Patel",
+    phone: "+1 (555) 456-7890",
+    vehicle: {
+      model: "Volvo XC90",
+      year: "2023",
+      licensePlate: "PTL-7890",
+      fuelStatus: "90%",
+    },
+  },
+  {
+    id: "C56789",
+    name: "Olivia Johnson",
+    phone: "+1 (555) 567-8901",
+    vehicle: {
+      model: "Tesla Model Y",
+      year: "2022",
+      licensePlate: "JSN-8901",
+      fuelStatus: "75%",
+    },
+  },
+  {
+    id: "C67890",
+    name: "James Williams",
+    phone: "+1 (555) 678-9012",
+    vehicle: {
+      model: "Lexus RX",
+      year: "2021",
+      licensePlate: "WLM-9012",
+      fuelStatus: "60%",
+    },
+  }
+]
 
 const initialTickets: Ticket[] = [
   {
     id: "T1000",
-    customer: sampleCustomer,
+    customer: {
+      id: "C12345",
+      name: "Alex Johnson",
+      phone: "+1 (555) 123-4567",
+      vehicle: {
+        model: "Porsche Cayenne",
+        year: "2022",
+        licensePlate: "BMW-2022",
+        fuelStatus: "75%",
+      },
+    },
     issue: "Engine warning light is on",
     category: "Warning Lights",
     status: "Requires Human",
@@ -261,6 +330,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [screenHistory, setScreenHistory] = useState<CustomerAppScreen[]>([])
   const [currentCustomer, setCurrentCustomer] = useState<Customer>(sampleCustomer)
   const [userAnalysisResults, setUserAnalysisResults] = useState<Record<string, AnalysisResult>>({});
+
+  // Initialize with additional users
+  useEffect(() => {
+    // Create a dummy ticket for each additional user to ensure they appear in the system
+    const dummyTickets = additionalUsers.map((user, index) => ({
+      id: `T${2000 + index}`,
+      customer: user,
+      issue: "Account initialization",
+      category: "System",
+      status: "Resolved",
+      priority: "low" as const,
+      createdAt: new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)), // 30 days ago
+      aiConfidence: 100,
+      location: {
+        address: "FormelD Headquarters",
+        coordinates: {
+          lat: 42.3601,
+          lng: -71.0589,
+        },
+      },
+      messages: [
+        {
+          id: `m${index}`,
+          content: "User account created successfully",
+          sender: "system",
+          timestamp: new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)),
+        },
+      ],
+    }));
+    
+    // Add these tickets to our state
+    setTickets(prev => {
+      // Check if we already have these users in the system
+      const existingUserIds = prev.map(ticket => ticket.customer.id);
+      const newTickets = dummyTickets.filter(ticket => 
+        !existingUserIds.includes(ticket.customer.id)
+      );
+      
+      if (newTickets.length === 0) return prev;
+      return [...prev, ...newTickets];
+    });
+  }, []);
 
   const selectTicket = (id: string | null) => {
     setSelectedTicketId(id)
@@ -483,7 +594,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const newTicket: Ticket = {
         id: `T${1000 + tickets.length + 1}`,
         customer: currentCustomer, // This already uses the current customer
-        issue: issueTitle + (callId ? ` (Call ID: ${callId})` : ''),
+        issue: issueTitle, // Remove Call ID from title
         category: "Vehicle won't start",
         status: "AI Agent Support",
         priority: "high",

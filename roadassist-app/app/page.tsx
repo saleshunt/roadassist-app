@@ -5,6 +5,8 @@ import CustomerApp from "@/components/customer-app"
 import AgentDashboard from "@/components/agent-dashboard"
 import { AppProvider } from "@/components/app-context"
 import { Maximize2, Minimize2 } from "lucide-react"
+import DevelopmentTools from "@/components/development-tools"
+import SettingsButton from "@/components/settings-button"
 
 export default function Home() {
   const [expandedSide, setExpandedSide] = useState<"none" | "customer" | "agent">("none")
@@ -48,6 +50,10 @@ export default function Home() {
           </div>
         )}
       </div>
+      
+      {/* Global UI Elements */}
+      <DevelopmentTools />
+      <SettingsButton />
     </AppProvider>
   )
 }
