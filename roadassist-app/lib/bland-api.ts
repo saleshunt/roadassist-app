@@ -1,5 +1,3 @@
-import type { WebhookCallData } from '../components/app-context';
-
 // Type for Bland API call response
 export type BlandCallResponse = {
   callId: string;
@@ -15,8 +13,8 @@ export type BlandCallRequest = {
   reduce_latency?: boolean;
   wait_for_greeting?: boolean;
   record?: boolean;
-  webhook?: string;
-  webhook_events?: string[];
+  pathway_id?: string;        // Add support for Conversational Pathway
+  variables?: Record<string, any>; // Add support for Pathway variables
   // Additional custom fields for our application
   location?: string;
   vehicle?: string;
@@ -24,49 +22,25 @@ export type BlandCallRequest = {
 }
 
 /**
- * Processes webhook data from Bland AI
- * @param appContext App context instance
- * @param data Webhook payload from Bland AI
- */
-export function processBlandWebhook(
-  updateTicketFromWebhook: (callId: string, data: WebhookCallData) => void,
-  data: WebhookCallData
-) {
-  if (!data.call_id) {
-    console.error('Invalid webhook data: missing call_id');
-    return;
-  }
-
-  try {
-    console.log(`Processing webhook for call ${data.call_id}, status: ${data.status}`);
-    
-    // Update ticket with the webhook data
-    updateTicketFromWebhook(data.call_id, data);
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Error processing Bland webhook:', error);
-    return { success: false, error };
-  }
-}
-
-/**
- * Makes a call using the Bland AI API
+ * Makes a call using the Bland AI API with support for Conversational Pathways
  * @param customerPhone Customer's phone number
- * @param issue The issue description
- * @param additionalInfo Additional context information
+ * @param issue The issue description (will be ignored if pathway_id is used)
+ * @param options Additional options including pathway configuration
  * @returns Call response with callId
  */
 export async function makeAiCall(
   customerPhone: string, 
   issue: string,
-  additionalInfo: {
+  options: {
     vehicle?: string;
     location?: string;
+    pathwayId?: string;        // Pathway ID from Bland AI portal
+    variables?: Record<string, any>; // Variables to pass to the Pathway
   } = {}
 ): Promise<BlandCallResponse> {
-  // Clean the phone number (remove non-digits)
-  const cleanedPhone = customerPhone.replace(/\D/g, '');
+  // Clean the phone number (remove non-digits except leading +)
+  const hasPlus = customerPhone.startsWith('+');
+  const cleanedPhone = customerPhone.replace(/[^\d+]/g, '').replace(/^\+/, ''); // Remove all non-digits and handle + separately
   
   if (!cleanedPhone || cleanedPhone.length < 10) {
     throw new Error('Invalid phone number');
@@ -74,13 +48,25 @@ export async function makeAiCall(
   
   // Construct the payload
   const payload: BlandCallRequest = {
-    phone_number: "+" + cleanedPhone,
+    phone_number: hasPlus ? "+" + cleanedPhone : "+" + cleanedPhone, // Always ensure it starts with +
     issue,
-    vehicle: additionalInfo.vehicle,
-    location: additionalInfo.location,
-    webhook: process.env.BLAND_WEBHOOK_URL,
-    webhook_events: ['call.started', 'call.in_progress', 'call.completed'],
+    vehicle: options.vehicle,
+    location: options.location,
   };
+  
+  // Add the pathway_id if provided
+  if (options.pathwayId) {
+    payload.pathway_id = options.pathwayId;
+    
+    // When using pathways, the task/issue is ignored by Bland AI
+    // So we can remove it to avoid confusion
+    delete payload.issue;
+  }
+  
+  // Add variables if provided
+  if (options.variables) {
+    payload.variables = options.variables;
+  }
   
   try {
     // Call the backend which has the Bland API key

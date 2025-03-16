@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useAppContext } from "./app-context"
-import { FormeldLogo } from "./formeld-logo"
-import { MapPin, Battery, Camera, ArrowLeft, Phone, Info, CheckCircle, AlertTriangle } from "lucide-react"
+import { ArrowLeft, Pin, MapPin, Phone, Camera, Info, Car, AlertTriangle, CheckCircle, Send, X, ChevronDown, ChevronUp, Battery } from "lucide-react"
 import CustomerSwitcher from "./customer-switcher"
+import { BrandLogo } from "./brand-logo"
+import { useBranding } from "./branding-context"
+import LanguageFlag from "./language-flag"
 import Image from "next/image"
 
 // A simple markdown renderer component
@@ -44,6 +46,7 @@ const MarkdownRenderer = ({ content }: { content: string }) => {
 // Customer app header component
 const CustomerAppHeader = ({ showBackButton = false, title = "", onBack = () => {} }) => {
   const { currentCustomer } = useAppContext()
+  const { currentBrand } = useBranding()
   
   return (
     <div className="bg-white p-4 flex items-center justify-between border-b border-gray-200 mb-4">
@@ -56,9 +59,11 @@ const CustomerAppHeader = ({ showBackButton = false, title = "", onBack = () => 
         {title ? (
           <h1 className="text-lg font-semibold">{title}</h1>
         ) : (
-          <div>
-            <h1 className="text-lg font-semibold">Hello, {currentCustomer.name}</h1>
-            <p className="text-sm text-gray-600">Vehicle: {currentCustomer.vehicle.model}</p>
+          <div className="flex items-center">
+            <div>
+              <h1 className="text-lg font-semibold">Hello, {currentCustomer.name} <LanguageFlag language={currentCustomer.language || 'de'} /></h1>
+              <p className="text-sm text-gray-600">{currentCustomer.vehicle.model}</p>
+            </div>
           </div>
         )}
       </div>
@@ -81,6 +86,7 @@ export default function CustomerApp() {
     goBack,
     userAnalysisResults,
   } = useAppContext()
+  const { currentBrand } = useBranding()
 
   const [category, setCategory] = useState("")
   const [details, setDetails] = useState("")
@@ -373,22 +379,7 @@ export default function CustomerApp() {
             
             <div className="mb-4 bg-white p-4 rounded-lg shadow-sm">
               <div className="flex items-center mt-1">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-4 h-4 text-bmw-blue mr-1"
-                >
-                  <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C1.4 11.3 1 12.1 1 13v3c0 .6.4 1 1 1h2"></path>
-                  <circle cx="7" cy="17" r="2"></circle>
-                  <path d="M9 17h6"></path>
-                  <circle cx="17" cy="17" r="2"></circle>
-                </svg>
-                <p className="text-sm text-gray-600">Your Roadside Assistance is always ready for you</p>
+                <p className="text-sm text-gray-600"><span className="font-medium text-brand">{currentBrand.name} {currentBrand.tagline}</span> is always ready for you</p>
               </div>
             </div>
             {/* Expandable Car Info Section */}
@@ -408,7 +399,7 @@ export default function CustomerApp() {
                 className="w-full bg-white p-4 rounded-lg shadow-md border border-gray-100 flex justify-between items-center"
               >
                 <div className="flex items-center">
-                  <h3 className="text-sm font-medium text-bmw-blue tracking-wide">Vehicle info</h3>
+                  <h3 className="text-sm font-medium text-brand tracking-wide">Vehicle Info</h3>
                 </div>
                 <span id="car-info-expand-icon" className="text-gray-500 text-xl font-medium">+</span>
               </button>
@@ -494,10 +485,9 @@ export default function CustomerApp() {
             
             <button
               onClick={() => simulateCall()}
-              className="bg-bmw-blue text-white py-4 px-8 rounded-lg font-bold text-xl shadow-lg hover:bg-bmw-blue-dark transition-colors mt-6 w-full max-w-md mx-auto flex items-center justify-center"
+              className="bg-brand text-white py-4 px-8 rounded-lg font-bold text-xl shadow-lg hover:bg-brand-dark transition-colors mt-6 w-full max-w-md mx-auto flex items-center justify-center"
             >
-              <Phone size={24} className="mr-3" />
-              Request Assistance
+              <Phone size={24} className="mr-2" /> Emergency Call
             </button>
             
             <div className="mt-6 bg-white p-4 rounded-lg shadow-sm w-full max-w-md mx-auto">
@@ -671,12 +661,12 @@ export default function CustomerApp() {
                   createNewTicket(category, details)
                 }
               }}
-              disabled={!category || !details}
-              className={`bg-bmw-blue text-white py-4 rounded-lg font-medium text-lg shadow-md transition-colors ${
-                !category || !details ? "opacity-50 cursor-not-allowed" : "hover:bg-bmw-blue-dark"
+              className={`bg-brand text-white py-4 rounded-lg font-medium text-lg shadow-md transition-colors ${
+                !category || !details ? "opacity-50 cursor-not-allowed" : "hover:bg-brand-dark"
               }`}
+              disabled={!category || !details}
             >
-              Submit Request
+              Request Assistance
             </button>
           </div>
         )
@@ -781,7 +771,7 @@ export default function CustomerApp() {
 
             <button
               onClick={() => setCustomerScreen("support")}
-              className="bg-bmw-blue text-white py-4 rounded-lg font-medium text-lg shadow-md hover:bg-bmw-blue-dark transition-colors"
+              className="bg-brand text-white py-4 rounded-lg font-medium text-lg shadow-md hover:bg-brand-dark transition-colors"
             >
               Continue to Support
             </button>
@@ -1040,7 +1030,7 @@ export default function CustomerApp() {
                   <div className="p-4 border-t bg-gray-50">
                     <button 
                       onClick={() => setShowSummaryModal(false)} 
-                      className="w-full py-2 bg-bmw-blue text-white rounded-lg"
+                      className="w-full py-2 bg-brand text-white rounded-lg"
                     >
                       Close
                     </button>
@@ -1100,7 +1090,7 @@ export default function CustomerApp() {
                   <div className="p-4 border-t bg-gray-50">
                     <button 
                       onClick={() => setShowDialogueModal(false)} 
-                      className="w-full py-2 bg-bmw-blue text-white rounded-lg"
+                      className="w-full py-2 bg-brand text-white rounded-lg"
                     >
                       Close
                     </button>
@@ -1146,7 +1136,10 @@ export default function CustomerApp() {
                         
                         <div className="bg-gray-50 p-3 rounded-lg">
                           <h5 className="text-sm font-medium text-gray-700 mb-1">Owner</h5>
-                          <p className="text-gray-800">{currentCustomer.name}</p>
+                          <div className="flex items-center">
+                            <p className="text-gray-800 mr-2">{currentCustomer.name}</p>
+                            <LanguageFlag language={currentCustomer.language || 'de'} size="sm" />
+                          </div>
                           <p className="text-gray-500 text-sm">{currentCustomer.phone}</p>
                         </div>
                         
@@ -1177,7 +1170,7 @@ export default function CustomerApp() {
                   <div className="p-4 border-t bg-gray-50">
                     <button 
                       onClick={() => setShowCarStatusModal(false)} 
-                      className="w-full py-2 bg-bmw-blue text-white rounded-lg"
+                      className="w-full py-2 bg-brand text-white rounded-lg"
                     >
                       Close
                     </button>
@@ -1312,9 +1305,9 @@ export default function CustomerApp() {
 
   return (
     <div className="flex flex-col h-full bg-white">
-      <header className="bg-bmw-blue text-white p-4 flex items-center">
-        <FormeldLogo className="h-10" />
-        <h1 className="text-xl font-semibold ml-4">Roadside Assistance</h1>
+      <header className="bg-brand text-white p-4 flex items-center">
+        <BrandLogo className="h-10" />
+        <h1 className="text-xl font-semibold ml-4">{currentBrand.tagline}</h1>
       </header>
       <main className="flex-1 overflow-y-auto p-4">{renderScreen()}</main>
     </div>

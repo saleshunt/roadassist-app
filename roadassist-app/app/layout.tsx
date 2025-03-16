@@ -1,28 +1,12 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import './globals.css'
+import type { Metadata } from 'next'
 import { AppProvider } from '../components/app-context'
-import WebhookSync from '../components/webhook-sync'
-import DevelopmentTools from '../components/development-tools'
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-// Get application info from environment variables
-const appName = process.env.NEXT_PUBLIC_APP_NAME || "RoadAssist App";
-const appDescription = process.env.NEXT_PUBLIC_APP_DESCRIPTION || "BMW Digital Roadside Assistance";
+import { BrandingProvider } from '../components/branding-context'
 
 export const metadata: Metadata = {
-  title: appName,
-  description: appDescription,
-};
+  title: 'Road Assistance App',
+  description: 'Digital roadside assistance with AI support',
+}
 
 export default function RootLayout({
   children,
@@ -31,15 +15,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <AppProvider>
-          {children}
-          <WebhookSync />
-          <DevelopmentTools />
-        </AppProvider>
+      <body className="bg-gray-50 min-h-screen">
+        <BrandingProvider>
+          <AppProvider>
+            {children}
+          </AppProvider>
+        </BrandingProvider>
       </body>
     </html>
-  );
+  )
 }

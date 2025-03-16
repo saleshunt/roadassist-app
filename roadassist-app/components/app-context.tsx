@@ -14,6 +14,8 @@ export type Customer = {
   id: string
   name: string
   phone: string
+  language?: string // Default language will be 'de' for German
+  brandId?: string // To associate user with specific brand (bmw, formelD)
   vehicle: Vehicle
 }
 
@@ -59,19 +61,6 @@ export type AnalysisResult = {
   timestamp: Date;
 }
 
-export type WebhookCallData = {
-  call_id: string;
-  status: 'initiated' | 'in_progress' | 'completed' | 'failed';
-  transcript?: string;
-  transcript_partial?: string;
-  transcript_segment?: {
-    speaker: 'ai' | 'user';
-    text: string;
-    timestamp: string;
-  };
-  call_details?: Record<string, unknown>;
-}
-
 type AppContextType = {
   tickets: Ticket[]
   selectedTicketId: string | null
@@ -89,7 +78,6 @@ type AppContextType = {
   updateCustomer: (ticketId: string, updatedCustomer: Customer) => void
   userAnalysisResults: Record<string, AnalysisResult>
   addAnalysisResult: (userId: string, analysis: string, images: string[]) => void
-  updateTicketFromWebhook: (callId: string, data: WebhookCallData) => void
   getCurrentCallId: () => string | null
 }
 
@@ -99,11 +87,13 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 const sampleCustomer: Customer = {
   id: "C98765",
   name: "Emma Martinez", 
-  phone: "+1 (555) 789-4561",
+  phone: "+49(7) 89456 1234",
+  language: "de",
+  brandId: "formelD",
   vehicle: {
-    model: "Mercedes-Benz GLC",
+    model: "Mercedes-Benz E-Class",
     year: "2023",
-    licensePlate: "MRZ-2023",
+    licensePlate: "B-MZ 2023",
     fuelStatus: "85%",
   },
 }
@@ -113,56 +103,171 @@ const additionalUsers: Customer[] = [
   {
     id: "C23456",
     name: "Michael Chen",
-    phone: "+1 (555) 234-5678",
+    phone: "+49(2) 34567 8901",
+    language: "de",
+    brandId: "bmw",
     vehicle: {
       model: "BMW X5",
       year: "2022",
-      licensePlate: "CHN-5678",
+      licensePlate: "M-CH 5678",
       fuelStatus: "65%",
     },
   },
   {
     id: "C34567",
     name: "Sofia Rodriguez",
-    phone: "+1 (555) 345-6789",
+    phone: "+49(3) 45678 9012",
+    language: "de",
+    brandId: "bmw",
     vehicle: {
-      model: "Audi Q7",
+      model: "BMW X7",
       year: "2021",
-      licensePlate: "RDZ-6789",
+      licensePlate: "K-SR 6789",
       fuelStatus: "45%",
     },
   },
   {
     id: "C45678",
     name: "David Patel",
-    phone: "+1 (555) 456-7890",
+    phone: "+49(4) 56789 0123",
+    language: "en",
+    brandId: "bmw",
     vehicle: {
-      model: "Volvo XC90",
+      model: "BMW iX",
       year: "2023",
-      licensePlate: "PTL-7890",
+      licensePlate: "F-DP 7890",
       fuelStatus: "90%",
     },
   },
   {
     id: "C56789",
     name: "Olivia Johnson",
-    phone: "+1 (555) 567-8901",
+    phone: "+49(5) 67890 1234",
+    language: "de",
+    brandId: "bmw",
     vehicle: {
-      model: "Tesla Model Y",
+      model: "BMW i4",
       year: "2022",
-      licensePlate: "JSN-8901",
+      licensePlate: "S-OJ 8901",
       fuelStatus: "75%",
     },
   },
   {
     id: "C67890",
     name: "James Williams",
-    phone: "+1 (555) 678-9012",
+    phone: "+49(6) 78901 2345",
+    language: "en",
+    brandId: "bmw",
     vehicle: {
-      model: "Lexus RX",
+      model: "BMW 5 Series",
       year: "2021",
-      licensePlate: "WLM-9012",
+      licensePlate: "B-JW 9012",
       fuelStatus: "60%",
+    },
+  },
+  // FormelD customers with diverse car brands
+  {
+    id: "C78901",
+    name: "Anna Müller",
+    phone: "+49(7) 89012 3456",
+    language: "de",
+    brandId: "formelD",
+    vehicle: {
+      model: "Mercedes-Benz C-Class",
+      year: "2022",
+      licensePlate: "M-AM 1234",
+      fuelStatus: "70%",
+    },
+  },
+  {
+    id: "C89012",
+    name: "Thomas Schmidt",
+    phone: "+49(8) 90123 4567",
+    language: "de",
+    brandId: "formelD",
+    vehicle: {
+      model: "Volkswagen Golf",
+      year: "2021",
+      licensePlate: "B-TS 4567",
+      fuelStatus: "55%",
+    },
+  },
+  {
+    id: "C90123",
+    name: "Laura Wagner",
+    phone: "+49(9) 01234 5678",
+    language: "de",
+    brandId: "formelD",
+    vehicle: {
+      model: "Audi A4",
+      year: "2023",
+      licensePlate: "K-LW 5678",
+      fuelStatus: "80%",
+    },
+  },
+  {
+    id: "C01234",
+    name: "Felix Becker",
+    phone: "+49(0) 12345 6789",
+    language: "en",
+    brandId: "formelD",
+    vehicle: {
+      model: "Porsche Taycan",
+      year: "2022",
+      licensePlate: "S-FB 6789",
+      fuelStatus: "65%",
+    },
+  },
+  {
+    id: "C12349",
+    name: "Sophia Müller",
+    phone: "+49(1) 23987 6543",
+    language: "de",
+    brandId: "formelD",
+    vehicle: {
+      model: "Renault Clio",
+      year: "2021",
+      licensePlate: "B-SM 1234",
+      fuelStatus: "60%",
+    },
+  },
+  {
+    id: "C12350",
+    name: "Maximilian Schneider",
+    phone: "+49(2) 34098 7654",
+    language: "de",
+    brandId: "formelD",
+    vehicle: {
+      model: "Toyota Yaris",
+      year: "2022",
+      licensePlate: "M-MS 2345",
+      fuelStatus: "75%",
+    },
+  },
+  {
+    id: "C12351",
+    name: "Charlotte Fischer",
+    phone: "+49(3) 45109 8765",
+    language: "de",
+    brandId: "formelD",
+    vehicle: {
+      model: "Hyundai i30",
+      year: "2023",
+      licensePlate: "K-CF 3456",
+      fuelStatus: "85%",
+    },
+  },
+  {
+    id: "C12352",
+    name: "Elias Weber",
+    phone: "+49(4) 56210 9876",
+    language: "en",
+    brandId: "formelD",
+    vehicle: {
+      model: "Skoda Octavia",
+      year: "2021",
+      licensePlate: "F-EW 4567",
+      fuelStatus: "50%",
     },
   }
 ]
@@ -173,11 +278,13 @@ const initialTickets: Ticket[] = [
     customer: {
       id: "C12345",
       name: "Alex Johnson",
-      phone: "+1 (555) 123-4567",
+      phone: "+49(1) 23456 7890",
+      language: "de",
+      brandId: "bmw",
       vehicle: {
-        model: "Porsche Cayenne",
+        model: "BMW X6",
         year: "2022",
-        licensePlate: "BMW-2022",
+        licensePlate: "B-AJ 2022",
         fuelStatus: "75%",
       },
     },
@@ -218,13 +325,16 @@ const initialTickets: Ticket[] = [
   {
     id: "T1001",
     customer: {
-      id: "C54321",
-      name: "Sam Wilson",
-      phone: "+1 (555) 987-6543",
+      id: "C12349",
+      name: "Sophia Müller",
+      phone: "+49(1) 23987 6543",
+      language: "de",
+      brandId: "formelD",
       vehicle: {
-        model: "Audi A4",
+        model: "Renault Clio",
         year: "2021",
-        licensePlate: "BMW-3421",
+        licensePlate: "B-SM 1234",
+        fuelStatus: "60%",
       },
     },
     issue: "Car won't start after parking overnight",
@@ -269,7 +379,7 @@ const initialTickets: Ticket[] = [
       {
         id: "m5",
         content:
-          "Hi Sam, I'm Agent Mike. I'll be helping you with your BMW 3 Series. I've dispatched a service vehicle to your location with an estimated arrival time of 15 minutes.",
+          "Hi Sophia, I'm Agent Mike. I'll be helping you with your Renault Clio. I've dispatched a service vehicle to your location with an estimated arrival time of 15 minutes.",
         sender: "agent",
         timestamp: new Date(Date.now() - 30 * 60000),
       },
@@ -278,13 +388,16 @@ const initialTickets: Ticket[] = [
   {
     id: "T1002",
     customer: {
-      id: "C98765",
-      name: "Taylor Reed",
-      phone: "+1 (555) 456-7890",
+      id: "C12350",
+      name: "Maximilian Schneider",
+      phone: "+49(2) 34098 7654",
+      language: "de",
+      brandId: "formelD",
       vehicle: {
-        model: "BMW 7 Series",
-        year: "2023",
-        licensePlate: "BMW-5789",
+        model: "Toyota Yaris",
+        year: "2022",
+        licensePlate: "M-MS 2345",
+        fuelStatus: "75%",
       },
     },
     issue: "Flat tire on highway",
@@ -321,6 +434,209 @@ const initialTickets: Ticket[] = [
       },
     ],
   },
+  // FormelD tickets with diverse car brands
+  {
+    id: "T1003",
+    customer: {
+      id: "C78901",
+      name: "Anna Müller",
+      phone: "+49(7) 89012 3456",
+      language: "de",
+      brandId: "formelD",
+      vehicle: {
+        model: "Mercedes-Benz C-Class",
+        year: "2022",
+        licensePlate: "M-AM 1234",
+        fuelStatus: "70%",
+      },
+    },
+    issue: "Air conditioning not working",
+    category: "Climate Control",
+    status: "AI Agent Support",
+    priority: "low",
+    createdAt: new Date(Date.now() - 45 * 60000), // 45 minutes ago
+    aiConfidence: 80,
+    location: {
+      address: "Münchner Str. 45, Berlin",
+      coordinates: {
+        lat: 52.5200,
+        lng: 13.4050,
+      },
+    },
+    messages: [
+      {
+        id: "m1",
+        content: "My air conditioning isn't blowing cold air anymore.",
+        sender: "customer",
+        timestamp: new Date(Date.now() - 45 * 60000),
+      },
+      {
+        id: "m2",
+        content: "I'm sorry to hear that. When did you first notice the issue with your air conditioning?",
+        sender: "ai",
+        timestamp: new Date(Date.now() - 44 * 60000),
+      },
+      {
+        id: "m3",
+        content: "It started yesterday. It was working fine before that.",
+        sender: "customer",
+        timestamp: new Date(Date.now() - 43 * 60000),
+      },
+    ],
+  },
+  {
+    id: "T1004",
+    customer: {
+      id: "C89012",
+      name: "Thomas Schmidt",
+      phone: "+49(8) 90123 4567",
+      language: "de",
+      brandId: "formelD",
+      vehicle: {
+        model: "Volkswagen Golf",
+        year: "2021",
+        licensePlate: "B-TS 4567",
+        fuelStatus: "55%",
+      },
+    },
+    issue: "Strange noise when braking",
+    category: "Brakes",
+    status: "Requires Human",
+    priority: "high",
+    createdAt: new Date(Date.now() - 25 * 60000), // 25 minutes ago
+    aiConfidence: 75,
+    location: {
+      address: "Frankfurter Allee 110, Berlin",
+      coordinates: {
+        lat: 52.5113,
+        lng: 13.4542,
+      },
+    },
+    messages: [
+      {
+        id: "m1",
+        content: "There's a squealing noise whenever I apply the brakes.",
+        sender: "customer",
+        timestamp: new Date(Date.now() - 25 * 60000),
+      },
+      {
+        id: "m2",
+        content: "Thank you for reporting this issue. Brake noises can indicate several different problems. Is the noise more of a high-pitched squeal or a grinding sound?",
+        sender: "ai",
+        timestamp: new Date(Date.now() - 24 * 60000),
+      },
+      {
+        id: "m3",
+        content: "It's definitely a high-pitched squeal.",
+        sender: "customer",
+        timestamp: new Date(Date.now() - 23 * 60000),
+      },
+    ],
+  },
+  {
+    id: "T1005",
+    customer: {
+      id: "C12351",
+      name: "Charlotte Fischer",
+      phone: "+49(3) 45109 8765",
+      language: "de",
+      brandId: "formelD",
+      vehicle: {
+        model: "Hyundai i30",
+        year: "2023",
+        licensePlate: "K-CF 3456",
+        fuelStatus: "85%",
+      },
+    },
+    issue: "Navigation system not working correctly",
+    category: "Navigation/Entertainment",
+    status: "AI Agent Support",
+    priority: "low",
+    createdAt: new Date(Date.now() - 60 * 60000), // 60 minutes ago
+    aiConfidence: 88,
+    location: {
+      address: "Kurfürstendamm 23, Berlin",
+      coordinates: {
+        lat: 52.5033,
+        lng: 13.3267,
+      },
+    },
+    messages: [
+      {
+        id: "m1",
+        content: "My navigation system keeps sending me in circles. It seems to think I'm on a different road than I am.",
+        sender: "customer",
+        timestamp: new Date(Date.now() - 60 * 60000),
+      },
+      {
+        id: "m2",
+        content: "I understand how frustrating that can be. Have you tried rebooting the navigation system?",
+        sender: "ai",
+        timestamp: new Date(Date.now() - 59 * 60000),
+      },
+      {
+        id: "m3",
+        content: "Yes, I've tried turning it off and on again, but it still has the same problem.",
+        sender: "customer",
+        timestamp: new Date(Date.now() - 58 * 60000),
+      },
+    ],
+  },
+  {
+    id: "T1006",
+    customer: {
+      id: "C12352",
+      name: "Elias Weber",
+      phone: "+49(4) 56210 9876",
+      language: "en",
+      brandId: "formelD",
+      vehicle: {
+        model: "Skoda Octavia",
+        year: "2021",
+        licensePlate: "F-EW 4567",
+        fuelStatus: "50%",
+      },
+    },
+    issue: "Battery warning light illuminated",
+    category: "Warning Lights",
+    status: "In Progress",
+    priority: "medium",
+    createdAt: new Date(Date.now() - 40 * 60000), // 40 minutes ago
+    aiConfidence: 92,
+    location: {
+      address: "Hauptstraße 78, Frankfurt",
+      coordinates: {
+        lat: 50.1109,
+        lng: 8.6821,
+      },
+    },
+    messages: [
+      {
+        id: "m1",
+        content: "The battery warning light just came on. Should I be concerned?",
+        sender: "customer",
+        timestamp: new Date(Date.now() - 40 * 60000),
+      },
+      {
+        id: "m2",
+        content: "Yes, a battery warning light indicates an issue with your charging system. How far are you from your destination?",
+        sender: "ai",
+        timestamp: new Date(Date.now() - 39 * 60000),
+      },
+      {
+        id: "m3",
+        content: "I'm about 15 kilometers from home.",
+        sender: "customer",
+        timestamp: new Date(Date.now() - 38 * 60000),
+      },
+      {
+        id: "m4",
+        content: "I recommend you have your vehicle checked as soon as possible. I'll connect you with an agent who can assist further.",
+        sender: "ai",
+        timestamp: new Date(Date.now() - 37 * 60000),
+      },
+    ],
+  },
 ]
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -339,12 +655,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       customer: user,
       issue: "Account initialization",
       category: "System",
-      status: "Resolved",
+      status: "Resolved" as TicketStatus,
       priority: "low" as const,
       createdAt: new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)), // 30 days ago
       aiConfidence: 100,
       location: {
-        address: "FormelD Headquarters",
+        address: "BMW Headquarters",
         coordinates: {
           lat: 42.3601,
           lng: -71.0589,
@@ -354,7 +670,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         {
           id: `m${index}`,
           content: "User account created successfully",
-          sender: "system",
+          sender: "system" as MessageType,
           timestamp: new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)),
         },
       ],
@@ -369,7 +685,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       );
       
       if (newTickets.length === 0) return prev;
-      return [...prev, ...newTickets];
+      return [...prev, ...newTickets] as Ticket[];
     });
   }, []);
 
@@ -521,23 +837,134 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Call Bland.ai API for voice call
     const callBlandApi = async () => {
       try {
-        // Prepare call data with customer info and webhook URL
-        const callData = {
-          phone_number: currentCustomer.phone.replace(/\D/g, ''), // Strip non-digits from phone number
+        // Get your actual Pathway ID from Bland AI Portal
+        // This ID should be stored in environment variables for production use
+        const pathwayId = process.env.NEXT_PUBLIC_BLAND_PATHWAY_ID || "cea8c2c4-e543-4dd8-b450-7a8c1e418858";
+        
+        // Get the user's latest image analysis if any
+        const userAnalysis = userAnalysisResults[currentCustomer.id]?.analysis;
+        
+        // Get the user's ticket history
+        const userTickets = tickets.filter(ticket => 
+          ticket.customer.id === currentCustomer.id && 
+          ticket.id !== selectedTicketId // Exclude current ticket
+        );
+        
+        // Extract previous issues from tickets
+        const previousIssues = userTickets.map(ticket => ({
+          id: ticket.id,
+          issue: ticket.issue,
+          category: ticket.category,
+          status: ticket.status,
+          createdAt: ticket.createdAt.toISOString(),
+          priority: ticket.priority
+        }));
+        
+        // Get the selected ticket if one exists
+        const selectedTicket = selectedTicketId ? 
+          tickets.find(ticket => ticket.id === selectedTicketId) : null;
+        
+        // Prepare call data with customer info
+        const callData: {
+          phone_number: string;
+          customer_name: string;
+          location: string;
+          vehicle: string;
+          issue: string;
+          membership: string;
+          vehicle_year: string;
+          license_plate: string;
+          image_summary?: string;
+          previous_issues?: any[];
+          last_service_date?: string;
+          pathway_id?: string;
+          language?: string;
+          variables?: Record<string, any>;
+        } = {
+          phone_number: currentCustomer.phone.replace(/[^\d+]/g, ''), // Remove all non-digits and keep + sign
           customer_name: currentCustomer.name,
-          location: "Current Location, Cambridge, MA",
+          location: selectedTicket?.location.address || "Current Location, Cambridge, MA",
           vehicle: currentCustomer.vehicle.model,
-          issue: "Vehicle won't start",
+          issue: selectedTicket?.issue || "Vehicle won't start",
           // Include membership if available
           membership: "Premium Roadside Assistance",
           // Include vehicle details
           vehicle_year: currentCustomer.vehicle.year,
           license_plate: currentCustomer.vehicle.licensePlate,
+          // Include image analysis if available
+          image_summary: userAnalysis,
+          // Include previous issues if available
+          previous_issues: previousIssues.length > 0 ? previousIssues : undefined,
+          // Mock a last service date (in a real app, this would come from the user's data)
+          last_service_date: "2023-12-15",
+          // Add the customer's language preference
+          language: currentCustomer.language || 'de' // Default to German if not set
         };
+        
+        // If we have a pathway ID, add it and prepare variables
+        if (pathwayId) {
+          callData.pathway_id = pathwayId;
+          
+          // Prepare variables for the pathway
+          // This includes all customer and vehicle data that might be needed
+          callData.variables = {
+            // Customer information
+            customer_id: currentCustomer.id,
+            customer_name: currentCustomer.name,
+            phone_number: currentCustomer.phone.replace(/[^\d+]/g, ''), // Remove all non-digits and keep + sign
+            preferred_language: currentCustomer.language || 'de', // Add language preference as a variable
+            
+            // Vehicle information
+            vehicle_model: currentCustomer.vehicle.model,
+            vehicle_year: currentCustomer.vehicle.year,
+            license_plate: currentCustomer.vehicle.licensePlate,
+            fuel_status: currentCustomer.vehicle.fuelStatus || 'unknown',
+            
+            // Location and issue information
+            current_location: selectedTicket?.location.address || "Current Location, Cambridge, MA",
+            issue_type: selectedTicket?.category || "Vehicle won't start",
+            issue_details: selectedTicket?.issue || "Customer needs immediate roadside assistance",
+            
+            // Current ticket information if available
+            ticket_id: selectedTicketId || undefined,
+            ticket_priority: selectedTicket?.priority || "medium",
+            ticket_status: selectedTicket?.status || "AI Agent Support",
+            ticket_created_at: selectedTicket?.createdAt.toISOString() || new Date().toISOString(),
+            
+            // Membership and account details
+            membership_level: "Premium Roadside Assistance",
+            
+            // Image analysis if available
+            image_analysis: userAnalysis || "No image analysis available",
+            has_image_analysis: !!userAnalysis,
+            
+            // Previous tickets/issues
+            previous_issues: previousIssues,
+            has_previous_issues: previousIssues.length > 0,
+            previous_issues_count: previousIssues.length,
+            
+            // Last service date
+            last_service_date: "2023-12-15",
+            
+            // Conversation history from the current ticket
+            conversation_history: selectedTicket?.messages.map(m => ({
+              sender: m.sender,
+              content: m.content,
+              timestamp: m.timestamp.toISOString()
+            })) || [],
+            
+            // App context
+            is_emergency: true,
+            app_version: "1.0.0",
+            call_source: "mobile_app",
+            call_reason: selectedTicket?.category || "Emergency"
+          };
+        }
 
         console.log('Attempting to call Bland.ai API with data:', {
           ...callData, 
-          phone_number: '****' // Mask the phone number in logs
+          phone_number: '****', // Mask the phone number in logs
+          pathway: pathwayId ? `Using Pathway ID: ${pathwayId}` : 'Using standard prompt'
         });
 
         // Call our API endpoint
@@ -642,62 +1069,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, 2000);
   }
 
-  // New method to update ticket based on webhook data
-  const updateTicketFromWebhook = (callId: string, data: WebhookCallData) => {
-    // Find the ticket with the matching callId
-    const ticketIndex = tickets.findIndex(ticket => ticket.callId === callId);
-    
-    if (ticketIndex === -1) {
-      console.warn(`No ticket found with callId: ${callId}`);
-      return;
-    }
-    
-    // Update ticket based on webhook data
-    setTickets(prevTickets => {
-      const updatedTickets = [...prevTickets];
-      const ticket = {...updatedTickets[ticketIndex]};
-      
-      // Update ticket based on call status
-      if (data.status === 'completed') {
-        ticket.status = 'Resolved';
-        
-        // Add transcript to messages if available
-        if (data.transcript) {
-          addMessage(ticket.id, {
-            content: `Call completed. Transcript: ${data.transcript}`,
-            sender: 'system',
-          });
-        }
-      } else if (data.status === 'in_progress') {
-        ticket.status = 'In Progress';
-        
-        // Add in-progress message if this is the first in_progress notification
-        const hasInProgressMessage = ticket.messages.some(
-          m => m.content.includes('AI agent is currently on a call')
-        );
-        
-        if (!hasInProgressMessage) {
-          addMessage(ticket.id, {
-            content: 'AI agent is currently on a call with the customer...',
-            sender: 'system',
-          });
-        }
-        
-        // If we have a partial transcript segment, add it
-        if (data.transcript_segment) {
-          const { speaker, text } = data.transcript_segment;
-          addMessage(ticket.id, {
-            content: text,
-            sender: speaker === 'ai' ? 'agent' : 'customer',
-          });
-        }
-      }
-      
-      updatedTickets[ticketIndex] = ticket;
-      return updatedTickets;
-    });
-  };
-
   // Add getCurrentCallId method
   const getCurrentCallId = () => {
     if (!selectedTicketId) return null;
@@ -760,7 +1131,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateCustomer,
         userAnalysisResults,
         addAnalysisResult,
-        updateTicketFromWebhook,
         getCurrentCallId,
       }}
     >

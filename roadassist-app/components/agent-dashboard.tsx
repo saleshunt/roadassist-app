@@ -2,8 +2,10 @@
 
 import type React from "react"
 
-import { useState, useRef, useCallback } from "react"
-import { useAppContext, type TicketStatus, type Customer } from "./app-context"
+import { useState, useRef, useCallback, useEffect } from "react"
+import { useAppContext, type TicketStatus, type Customer, type Ticket, type Message } from "./app-context"
+import { useBranding } from "./branding-context"
+import { BrandLogo } from "./brand-logo"
 import {
   Search,
   Filter,
@@ -21,9 +23,22 @@ import {
   Users,
   GripVertical,
   Edit,
+  AlertCircle,
+  MapPin,
+  ArrowRight,
+  Info,
+  ChevronRight,
+  MessageSquare,
+  PhoneCall,
+  PhoneOutgoing,
+  Plus,
+  ArrowRightCircle,
+  X,
+  Send,
+  UserRound,
 } from "lucide-react"
 import CustomerEditModal from "./customer-edit-modal"
-import LiveTranscript from "./live-transcript"
+import LanguageFlag from "./language-flag"
 
 export default function AgentDashboard() {
   const { 
@@ -37,6 +52,7 @@ export default function AgentDashboard() {
     addMessage,
     getCurrentCallId 
   } = useAppContext()
+  const { currentBrand } = useBranding()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "All">("All")
   const [showConversation, setShowConversation] = useState(false)
@@ -71,8 +87,11 @@ export default function AgentDashboard() {
       ticket.id.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus = statusFilter === "All" || ticket.status === statusFilter
+    
+    // Filter tickets by brand
+    const matchesBrand = ticket.customer.brandId === currentBrand.id
 
-    return matchesSearch && matchesStatus
+    return matchesSearch && matchesStatus && matchesBrand
   })
 
   const selectedTicket = selectedTicketId ? tickets.find((t) => t.id === selectedTicketId) : null
@@ -120,7 +139,9 @@ export default function AgentDashboard() {
         {showLiveTranscript && (
           <div className="bg-white rounded-lg shadow-sm p-4 mb-4 h-64">
             {selectedTicket.status === "In Progress" ? (
-              <LiveTranscript callId={selectedTicket.callId} />
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-center text-gray-500">Live transcript functionality temporarily unavailable</p>
+              </div>
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">
                 <p>No active call in progress</p>
@@ -135,9 +156,16 @@ export default function AgentDashboard() {
   return (
     <div className="flex h-full bg-gray-100">
       {/* Ticket List Sidebar with dynamic width */}
-      <div className="border-r border-gray-300 bg-white overflow-y-auto" style={{ width: sidebarWidth }}>
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-xl font-bold mb-4">FormelD</h2>
+      <div
+        className="flex flex-col h-full border-r bg-white"
+        style={{ width: `${sidebarWidth}px`, minWidth: "300px" }}
+      >
+        <div className="p-4 border-b">
+          <div className="flex items-center mb-4">
+            <h2 className="text-lg font-medium">
+              {currentBrand.name} Support Tickets
+            </h2>
+          </div>
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <input
@@ -145,7 +173,7 @@ export default function AgentDashboard() {
               placeholder="Search tickets..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-bmw-blue focus:border-bmw-blue"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-brand focus:border-brand"
             />
           </div>
           <div className="flex items-center space-x-2 mb-2">
@@ -156,7 +184,7 @@ export default function AgentDashboard() {
             <button
               onClick={() => setStatusFilter("All")}
               className={`px-3 py-1 text-xs rounded-full ${
-                statusFilter === "All" ? "bg-bmw-blue text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                statusFilter === "All" ? "bg-brand text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               All
@@ -203,36 +231,54 @@ export default function AgentDashboard() {
         </div>
 
         <div className="divide-y divide-gray-200">
-          {filteredTickets.map((ticket) => (
-            <div
-              key={ticket.id}
-              onClick={() => selectTicket(ticket.id)}
-              className={`p-4 cursor-pointer hover:bg-gray-50 ${
-                selectedTicketId === ticket.id ? "bg-blue-50 border-l-4 border-bmw-blue" : ""
-              }`}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="font-medium">{ticket.customer.name}</h3>
-                  <p className="text-sm text-gray-500">{ticket.customer.vehicle.model}</p>
+          {filteredTickets.length > 0 ? (
+            filteredTickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                onClick={() => selectTicket(ticket.id)}
+                className={`p-4 cursor-pointer hover:bg-gray-50 ${
+                  selectedTicketId === ticket.id ? "bg-blue-50 border-l-4 border-brand" : ""
+                }`}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <div className="mb-1">
+                      <div className="flex items-center">
+                        <h3 className="font-medium mr-1">{ticket.customer.name}</h3>
+                        <LanguageFlag language={ticket.customer.language || 'de'} size="sm" />
+                      </div>
+                      <div className="flex items-center text-xs text-gray-600">
+                        <Car size={14} className="mr-1" />
+                        {ticket.customer.vehicle.model}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusBadgeClass(ticket.status)}`}>
+                    {ticket.status}
+                  </div>
                 </div>
-                <div className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusBadgeClass(ticket.status)}`}>
-                  {ticket.status}
+                <p className="text-sm text-gray-700 mb-2 line-clamp-2">{ticket.issue}</p>
+                <div className="flex justify-between items-center text-xs text-gray-500">
+                  <div className="flex items-center">
+                    <Clock size={14} className="mr-1" />
+                    <span suppressHydrationWarning>{formatTimeAgo(ticket.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <BarChart size={14} className="mr-1" />
+                    AI: {ticket.aiConfidence}%
+                  </div>
                 </div>
               </div>
-              <p className="text-sm text-gray-700 mb-2 line-clamp-2">{ticket.issue}</p>
-              <div className="flex justify-between items-center text-xs text-gray-500">
-                <div className="flex items-center">
-                  <Clock size={14} className="mr-1" />
-                  <span suppressHydrationWarning>{formatTimeAgo(ticket.createdAt)}</span>
-                </div>
-                <div className="flex items-center">
-                  <BarChart size={14} className="mr-1" />
-                  AI: {ticket.aiConfidence}%
-                </div>
-              </div>
+            ))
+          ) : (
+            <div className="p-8 text-center">
+              <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <h3 className="text-lg font-medium text-gray-700 mb-1">No tickets found</h3>
+              <p className="text-gray-500">
+                There are no active tickets for {currentBrand.name} matching your filters.
+              </p>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -252,7 +298,10 @@ export default function AgentDashboard() {
             <div className="p-4 border-b border-gray-200 bg-white">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-bold">{selectedTicket.customer.name}</h2>
+                  <div className="flex items-center">
+                    <h2 className="text-xl font-bold mr-2">{selectedTicket.customer.name}</h2>
+                    <LanguageFlag language={selectedTicket.customer.language || 'de'} size="lg" />
+                  </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <Car size={16} className="mr-1" />
                     {selectedTicket.customer.vehicle.model} • {selectedTicket.customer.vehicle.licensePlate}
@@ -272,7 +321,7 @@ export default function AgentDashboard() {
                   <select
                     value={selectedTicket.status}
                     onChange={(e) => updateTicketStatus(selectedTicket.id, e.target.value as TicketStatus)}
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-bmw-blue focus:border-bmw-blue"
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-brand focus:border-brand"
                   >
                     <option value="AI Agent Support">AI Agent Support</option>
                     <option value="Requires Human">Requires Human</option>
@@ -287,7 +336,7 @@ export default function AgentDashboard() {
               {/* Main Content */}
               <div className="flex-1 overflow-y-auto p-4">
                 <div className="bg-blue-50 rounded-lg shadow-sm p-4 mb-4 border border-blue-100">
-                  <h3 className="font-medium text-bmw-blue mb-3">Issue Details</h3>
+                  <h3 className="font-medium text-brand mb-3">Issue Details</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium text-gray-600 mb-1">Problem Summary</p>
@@ -299,9 +348,28 @@ export default function AgentDashboard() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-600 mb-1">Customer</p>
-                      <p className="text-gray-800">
-                        {selectedTicket.customer.name} • {selectedTicket.customer.phone}
-                      </p>
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <h4 className="text-xs font-medium text-gray-500 uppercase mb-2">Customer</h4>
+                        <div className="space-y-2">
+                          <div className="flex items-center">
+                            <UserRound size={16} className="text-gray-400 mr-2" />
+                            <div>
+                              <p className="text-xs text-gray-500">Name</p>
+                              <div className="flex items-center">
+                                <p className="text-sm text-gray-800 mr-1">{selectedTicket.customer.name}</p>
+                                <LanguageFlag language={selectedTicket.customer.language || 'de'} size="sm" />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <Phone size={16} className="text-gray-400 mr-2" />
+                            <div>
+                              <p className="text-xs text-gray-500">Phone</p>
+                              <p className="text-sm text-gray-800">{selectedTicket.customer.phone}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-600 mb-1">Location</p>
@@ -316,7 +384,7 @@ export default function AgentDashboard() {
                     <h3 className="font-medium text-gray-800">Customer Information</h3>
                     <button 
                       onClick={() => setIsEditModalOpen(true)}
-                      className="flex items-center text-sm text-bmw-blue hover:text-bmw-blue-dark"
+                      className="flex items-center text-sm text-brand hover:text-brand-dark"
                     >
                       <Edit size={14} className="mr-1" />
                       Edit Details
@@ -390,7 +458,7 @@ export default function AgentDashboard() {
                                 ? selectedTicket.customer.name
                                 : message.sender === "agent"
                                   ? "Agent"
-                                  : "FormelD AI Assistant"}
+                                  : `${currentBrand.name} AI Assistant`}
                             </p>
                             <p className="text-xs text-gray-500"><span suppressHydrationWarning>{formatTime(message.timestamp)}</span></p>
                           </div>
@@ -413,7 +481,7 @@ export default function AgentDashboard() {
                 {selectedTicket.status === "AI Agent Support" && (
                   <button
                     onClick={handleTakeOver}
-                    className="w-full py-4 bg-bmw-blue text-white font-bold text-lg rounded-lg hover:bg-bmw-blue-dark transition-colors shadow-md"
+                    className="w-full py-4 bg-brand text-white font-bold text-lg rounded-lg hover:bg-brand-dark transition-colors shadow-md"
                   >
                     Take Over From AI Agent
                   </button>
@@ -425,7 +493,7 @@ export default function AgentDashboard() {
                 <h3 className="font-bold text-lg mb-4">AI Agent Summary</h3>
 
                 <div className="bg-blue-50 rounded-lg p-4 mb-4">
-                  <h4 className="font-medium text-bmw-blue flex items-center mb-2">
+                  <h4 className="font-medium text-brand flex items-center mb-2">
                     <BarChart size={16} className="mr-1" /> Analysis
                   </h4>
                   <p className="text-sm text-gray-700 mb-2">
@@ -433,7 +501,7 @@ export default function AgentDashboard() {
                   </p>
                   <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
                     <div
-                      className="bg-bmw-blue h-2 rounded-full"
+                      className="bg-brand h-2 rounded-full"
                       style={{ width: `${selectedTicket.aiConfidence}%` }}
                     ></div>
                   </div>

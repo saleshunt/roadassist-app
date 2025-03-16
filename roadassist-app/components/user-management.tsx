@@ -64,7 +64,7 @@ export default function UserManagement({ isOpen, onClose }: UserManagementProps)
         name: "Sofia Rodriguez",
         phone: "+1 (555) 345-6789",
         vehicle: {
-          model: "Audi Q7",
+          model: "BMW X7",
           year: "2021",
           licensePlate: "RDZ-6789",
           fuelStatus: "45%",
@@ -75,7 +75,7 @@ export default function UserManagement({ isOpen, onClose }: UserManagementProps)
         name: "David Patel",
         phone: "+1 (555) 456-7890",
         vehicle: {
-          model: "Volvo XC90",
+          model: "BMW iX",
           year: "2023",
           licensePlate: "PTL-7890",
           fuelStatus: "90%",
@@ -86,7 +86,7 @@ export default function UserManagement({ isOpen, onClose }: UserManagementProps)
         name: "Olivia Johnson",
         phone: "+1 (555) 567-8901",
         vehicle: {
-          model: "Tesla Model Y",
+          model: "BMW i4",
           year: "2022",
           licensePlate: "JSN-8901",
           fuelStatus: "75%",
@@ -97,7 +97,7 @@ export default function UserManagement({ isOpen, onClose }: UserManagementProps)
         name: "James Williams",
         phone: "+1 (555) 678-9012",
         vehicle: {
-          model: "Lexus RX",
+          model: "BMW 5 Series",
           year: "2021",
           licensePlate: "WLM-9012",
           fuelStatus: "60%",
@@ -108,7 +108,7 @@ export default function UserManagement({ isOpen, onClose }: UserManagementProps)
         name: "Emma Martinez", 
         phone: "+1 (555) 789-4561",
         vehicle: {
-          model: "Mercedes-Benz GLC",
+          model: "BMW X3",
           year: "2023",
           licensePlate: "MRZ-2023",
           fuelStatus: "85%",

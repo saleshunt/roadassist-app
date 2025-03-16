@@ -1,15 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import LiveTranscript from '../../components/live-transcript';
+import { useState } from 'react';
 
 export default function TranscriptTestPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [customerName, setCustomerName] = useState('John Doe');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeCallId, setActiveCallId] = useState<string | null>(null);
-  const [callStatus, setCallStatus] = useState<string | null>(null);
+  const [callInfo, setCallInfo] = useState<any>(null);
   
   // Function to initiate a real call via Bland AI
   const initiateRealCall = async () => {
@@ -48,8 +46,7 @@ export default function TranscriptTestPage() {
       }
       
       console.log('Call initiated:', data);
-      setActiveCallId(data.callId);
-      setCallStatus(data.status);
+      setCallInfo(data);
       
       // Toast notification
       alert(`Call initiated! Call ID: ${data.callId}`);
@@ -63,18 +60,17 @@ export default function TranscriptTestPage() {
   
   return (
     <main className="container mx-auto max-w-4xl p-6">
-      <h1 className="text-2xl font-bold mb-6">Live Transcript Testing</h1>
+      <h1 className="text-2xl font-bold mb-6">Bland AI Call Testing</h1>
       
       <div className="mb-8">
         <p className="mb-4">
-          This page allows you to test the real-time transcript streaming functionality.
-          You can either simulate messages or make a real phone call using Bland AI.
+          This page allows you to test making a call with Bland AI.
         </p>
       </div>
       
       {/* Real Call Section */}
       <div className="mb-8 border rounded-lg p-4 bg-white shadow-sm">
-        <h2 className="text-xl font-semibold mb-4">Make a Real Call</h2>
+        <h2 className="text-xl font-semibold mb-4">Make a Call</h2>
         <div className="space-y-4">
           <div>
             <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
@@ -119,28 +115,16 @@ export default function TranscriptTestPage() {
                 : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
             }`}
           >
-            {isLoading ? 'Initiating Call...' : 'Make Real Phone Call'}
+            {isLoading ? 'Initiating Call...' : 'Make Phone Call'}
           </button>
           
-          {activeCallId && (
+          {callInfo && (
             <div className="p-3 bg-green-50 text-green-700 rounded-md border border-green-100">
-              <p><strong>Call ID:</strong> {activeCallId}</p>
-              <p><strong>Status:</strong> {callStatus}</p>
-              <p className="text-sm mt-1">The transcript will stream below as the call progresses</p>
+              <p><strong>Call ID:</strong> {callInfo.callId}</p>
+              <p><strong>Status:</strong> {callInfo.status}</p>
+              <p className="text-sm mt-1">Call in progress with Bland AI</p>
             </div>
           )}
-        </div>
-      </div>
-      
-      <div className="bg-gray-50 p-4 border rounded-lg mb-8">
-        <h2 className="text-xl font-semibold mb-2">Live Transcript</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          {activeCallId 
-            ? 'Showing transcript for active call' 
-            : 'Test mode - no active call (use simulated messages below)'}
-        </p>
-        <div className="border rounded-lg overflow-hidden shadow-md bg-white h-96">
-          <LiveTranscript callId={activeCallId || undefined} />
         </div>
       </div>
       
@@ -148,20 +132,16 @@ export default function TranscriptTestPage() {
         <h3 className="font-semibold text-yellow-800">How It Works</h3>
         <p className="text-yellow-700">
           1. Enter a phone number and customer name<br />
-          2. Click "Make Real Phone Call" to initiate a Bland AI call<br />
+          2. Click "Make Phone Call" to initiate a Bland AI call<br />
           3. When the person answers, Bland AI will talk to them<br />
-          4. The conversation transcript will appear in real-time above<br />
-          5. Each message will be streamed as it happens
+          4. The call will be handled entirely by Bland AI<br />
         </p>
       </div>
       
       <div className="mt-6">
         <h2 className="text-xl font-semibold mb-2">Technical Details</h2>
         <p className="text-gray-700">
-          This test page connects to the backend via Socket.io and displays transcript segments as they're 
-          received from Bland AI. The streaming is enabled by configuring <code>streaming: true</code> and
-          <code>webhook_events: ['call.started', 'transcript.partial', 'call.in_progress', 'call.completed']</code>
-          in the Bland AI call parameters.
+          This page connects to the backend endpoint that initiates a Bland AI call. The call is processed by Bland AI's service directly without any additional streaming or webhooks.
         </p>
       </div>
     </main>

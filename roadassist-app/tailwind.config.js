@@ -50,8 +50,12 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        "bmw-blue": "#00A19C", // Changed from BMW blue to FormelD teal
-        "bmw-blue-dark": "#008783", // Darker shade of FormelD teal
+        "brand": {
+          DEFAULT: "var(--brand-primary, #00A19C)", // Default to FormelD teal if var not set
+          dark: "var(--brand-primary-dark, #008783)" // Default to darker FormelD teal if var not set
+        },
+        "bmw-blue": "#0066B1", // Keep for backward compatibility 
+        "bmw-blue-dark": "#00518C", // Keep for backward compatibility
       },
       borderRadius: {
         lg: "var(--radius)",

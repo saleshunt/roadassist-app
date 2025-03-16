@@ -5,7 +5,6 @@ import CustomerApp from "@/components/customer-app"
 import AgentDashboard from "@/components/agent-dashboard"
 import { AppProvider } from "@/components/app-context"
 import { Maximize2, Minimize2 } from "lucide-react"
-import DevelopmentTools from "@/components/development-tools"
 import SettingsButton from "@/components/settings-button"
 
 export default function Home() {
@@ -52,8 +51,9 @@ export default function Home() {
       </div>
       
       {/* Global UI Elements */}
-      <DevelopmentTools />
-      <SettingsButton />
+      <div className="fixed bottom-4 right-4 z-50">
+        <SettingsButton />
+      </div>
     </AppProvider>
   )
 }
